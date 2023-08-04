@@ -57,7 +57,7 @@ runs:
   using: "composite"
   steps:
     - name: Plan Atmos Component
-      uses: cloudposse/github-action-atmos-terraform-plan@v0
+      uses: cloudposse/github-action-atmos-terraform-plan@echo-component-plan
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
