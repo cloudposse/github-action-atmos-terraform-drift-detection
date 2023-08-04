@@ -57,11 +57,11 @@ runs:
   using: "composite"
   steps:
     - name: Plan Atmos Component
-      uses: cloudposse/github-action-atmos-terraform-plan@echo-component-plan
+      uses: cloudposse/github-action-atmos-terraform-plan@v0
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
-        component-path: ${{ inputs.component_path }}
+        component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
         terraform-state-role: ${{ inputs.terraform-state-role }}
@@ -69,5 +69,4 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
-        atmos-config-path: ${{ inputs.atmos-config-path }}
         terraform-version: ${{ inputs.terraform-version }}
