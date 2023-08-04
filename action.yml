@@ -1,0 +1,73 @@
+name: 'GitHub Action Atmos Terraform Drift Detection'
+description: 'GitHub Action Atmos Terraform Drift Detection'
+author: hello@cloudposse.com
+branding:
+  icon: 'server'
+  color: 'white'
+inputs:
+  component:
+    description: "The name of the component to plan."
+    required: true
+  stack:
+    description: "The stack name for the given component."
+    required: true
+  component-path:
+    description: "The path to the base component. Atmos defines this value as component_path."
+    required: true
+  terraform-plan-role:
+    description: "The AWS role to be used to plan Terraform."
+    required: true
+  terraform-state-role:
+    description: "The AWS role to be used to retrieve the planfile from AWS."
+    required: true
+  terraform-state-bucket:
+    description: "The S3 Bucket where the planfiles are stored."
+    required: true
+  terraform-state-table:
+    description: "The DynamoDB table where planfile metadata is stored."
+    required: true
+  aws-region:
+    description: "AWS region for assuming identity."
+    required: false
+    default: "us-east-1"
+  atmos-version:
+    description: "Atmos version to use for vendoring. Default 'latest'"
+    required: false
+    default: 'latest'
+  atmos-config-path:
+    description: The path to the folder where atmos.yaml file is located
+    required: false
+    default: '.'
+  terraform-version:
+    description: 'The version of Terraform CLI to install. Instead of full version string you can also specify constraint string starting with "<" (for example `<1.13.0`) to install the latest version satisfying the constraint. A value of `latest` will install the latest version of Terraform CLI. Defaults to `latest`.'
+    default: 'latest'
+    required: false
+  debug:
+    description: "Enable action debug mode. Default: 'false'"
+    default: 'false'
+    required: false
+  token:
+    description:
+      Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically
+      not supplied by the user. When running this action on github.com, the default value is sufficient. When running on
+      GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
+    default: ${{ github.server_url == 'https://github.com' && github.token || '' }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Plan Atmos Component
+      uses: cloudposse/github-action-atmos-terraform-plan@v0
+      with:
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        component-path: ${{ inputs.component_path }}
+        terraform-plan-role: ${{ inputs.terraform-plan-role }}
+        terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
+        terraform-state-role: ${{ inputs.terraform-state-role }}
+        terraform-state-table: ${{ inputs.terraform-state-table }}
+        aws-region: ${{ inputs.aws-region }}
+        token: ${{ inputs.token }}
+        atmos-version: ${{ inputs.atmos-version }}
+        atmos-config-path: ${{ inputs.atmos-config-path }}
+        terraform-version: ${{ inputs.terraform-version }}

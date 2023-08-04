@@ -1,0 +1,10 @@
+import:
+  - orgs/_defaults
+
+vars:
+  stage: test
+
+components:
+  terraform:
+    test:
+      seed: 1

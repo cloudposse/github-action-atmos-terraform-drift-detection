@@ -1,0 +1,9 @@
+vars:
+  namespace: tst
+  tenant: test
+  environment: t
+  label_order:
+    - namespace
+    - tenant
+    - environment
+    - stage
