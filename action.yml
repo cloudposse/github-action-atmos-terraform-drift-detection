@@ -75,8 +75,8 @@ runs:
     - name: Print plan file path
       shell: bash
       run: |
-        echo "${{ steps.atmos-plan.outputs.plan-file-path }}"
-        echo "${{ steps.atmos-plan.outputs.plan-file }}"
+        echo "Plan file path: ${{ steps.atmos-plan.outputs.plan-file-path }}"
+        echo "Plan file: ${{ steps.atmos-plan.outputs.plan-file }}"
 
     - name: Render Output
       id: render-output
@@ -95,10 +95,10 @@ runs:
           -var "stack:${{ inputs.stack }}" \
           -var "job:${{ github.job }}" \
           --log-level $LOG_LEVEL \
-          --output output.md \
+          --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
     - name: Print output
       shell: bash
       run: |
-        cat output.md
+        cat "${{ github.action_path }}/output.md"
