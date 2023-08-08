@@ -72,12 +72,6 @@ runs:
         atmos-version: ${{ inputs.atmos-version }}
         terraform-version: ${{ inputs.terraform-version }}
 
-    - name: Print plan file path
-      shell: bash
-      run: |
-        echo "Plan file path: ${{ steps.atmos-plan.outputs.plan-file-path }}"
-        echo "Plan file: ${{ steps.atmos-plan.outputs.plan-file }}"
-
     - name: Render Output
       id: render-output
       shell: bash
@@ -98,7 +92,61 @@ runs:
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
-    - name: Print output
-      shell: bash
-      run: |
-        cat "${{ github.action_path }}/output.md"
+    - name: Lookup Issue by Title
+      id: lookup-issue
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const { core } = require('@actions/core');
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+
+          const issues = await github.rest.search.issuesAndPullRequests({
+            q: `repo:${owner}/${repo} is:issue in:title ${title}`
+          });
+
+          let issueNumber = -1
+
+          if (issues.data.total_count > 0) {
+            issueNumber = issues.data.items[0].number;
+            console.log(`Found issue number: ${issueNumber}`);
+          } else {
+            console.log("Issue not found.");
+          }
+
+          core.setOutput('issue_number', issueNumber);
+    
+    - name: Create or Update Issue
+      id: create_or_update_issue
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+          const issueNumber = ${{steps.lookup-issue.outputs.issue_number}};
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const body = fs.readFileSync(${{ github.action_path }}/output.md, 'utf8');
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+
+          if (issueNumber > 0) {
+            await github.rest.issues.update({
+              owner: owner,
+              repo: repo,
+              issue_number: issueNumber,
+              body: body
+            });
+
+            console.log(`Updated issue number: ${issueNumber}`);
+          } else {
+            const newIssue = await github.rest.issues.create({
+              owner: owner,
+              repo: repo,
+              title: title,
+              body: body
+            });
+
+            console.log(`Created new issue with number: ${newIssue.data.number}`);
+          }
