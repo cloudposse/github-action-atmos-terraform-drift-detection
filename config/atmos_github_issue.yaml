@@ -87,6 +87,8 @@ templates:
     {{range .ErrorMessages}}
     * {{. -}}
     {{- end}}{{end}}
+  metadata: |
+    <!-- {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}"} -->
 terraform:
   plan:
     disable_label: false
@@ -107,6 +109,7 @@ terraform:
       {{template "change_outside_terraform" .}}
       {{template "warning" .}}
       {{template "error_messages" .}}
+      {{template "metadata" .}}
     when_parse_error:
       template: |
         {{template "plan_title" .}}
