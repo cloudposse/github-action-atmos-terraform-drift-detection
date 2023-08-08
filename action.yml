@@ -124,23 +124,25 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const fs = require('fs');
-          const issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
+
+          let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-
-          console.log(`Incoming issue number: ${issueNumber}`);
 
           if (issueNumber == '-1') {
             const newIssue = await github.rest.issues.create({
               owner: owner,
               repo: repo,
               title: title,
-              body: body
+              body: body,
+              labels: ["drift"]
             });
 
-            console.log(`Created new issue with number: ${newIssue.data.number}`);
+            issueNumber = newIssue.data.number;
+
+            console.log(`Created new issue with number: ${issueNumber}`);
           } else {
             await github.rest.issues.update({
               owner: owner,
@@ -151,3 +153,19 @@ runs:
 
             console.log(`Updated issue number: ${issueNumber}`);
           }
+
+          core.setOutput('issue_number', issueNumber);
+
+    - name: Attach File to Issue
+      shell: bash
+      run: |
+        issue_number=${{ steps.create_or_update_issue.outputs.issue_number }}
+        echo "{\"aaa\": \"bbb\", \"date\": \"$(date)\"}" > metadata.json.txt
+        file_path="metadata.json.txt"
+
+        curl \
+          -H "Authorization: token ${{ inputs.token }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary @$file_path \
+          "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/attachments"
