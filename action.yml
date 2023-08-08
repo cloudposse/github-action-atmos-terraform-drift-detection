@@ -57,7 +57,8 @@ runs:
   using: "composite"
   steps:
     - name: Plan Atmos Component
-      uses: cloudposse/github-action-atmos-terraform-plan@v0
+      id: atmos-plan
+      uses: cloudposse/github-action-atmos-terraform-plan@added-outputs
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
@@ -70,6 +71,12 @@ runs:
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
         terraform-version: ${{ inputs.terraform-version }}
+
+    - name: Print plan file path
+      shell: bash
+      run: |
+        echo "${{ steps.atmos-plan.outputs.plan-file-path }}"
+        echo "${{ steps.atmos-plan.outputs.plan-file }}"
 
     - name: Render Output
       id: render-output
@@ -89,7 +96,7 @@ runs:
           -var "job:${{ github.job }}" \
           --log-level $LOG_LEVEL \
           --output output.md \
-          plan -- terraform show ${{ steps.atmos-plan.outputs.plan_file_path }}/${{ steps.atmos-plan.outputs.plan_file }}
+          plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
     - name: Print output
       shell: bash
