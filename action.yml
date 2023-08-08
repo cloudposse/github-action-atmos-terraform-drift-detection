@@ -93,6 +93,14 @@ runs:
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
+    - name: Output Hash
+      id: output-hash
+      uses: actions/github-script@v6
+      with:
+        result-encoding: string
+        script: |
+          return glob.hashFiles('${{ github.action_path }}/output.md');
+
     - name: Lookup Issue by Title
       id: lookup-issue
       uses: actions/github-script@v6
@@ -112,15 +120,63 @@ runs:
           if (issues.data.total_count > 0) {
             issueNumber = issues.data.items[0].number;
             console.log(`Found issue number: ${issueNumber}`);
+
+            const issue = await github.rest.issues.get({
+              owner,
+              repo,
+              issueNumber
+            });
+
+            const description = issue.data.body;
+
+            core.setOutput('issue_description', description);          
           } else {
             console.log("Issue not found.");
           }
 
           core.setOutput('issue_number', issueNumber);
-    
-    - name: Create or Update Issue
-      id: create_or_update_issue
+
+    - name: Create Issue
+      id: create_issue
       uses: actions/github-script@v6
+      if: ${{ steps.lookup-issue.outputs.issue_number == '-1' }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+
+          let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const newIssue = await github.rest.issues.create({
+            owner: owner,
+            repo: repo,
+            title: title,
+            body: body,
+            labels: ["drift"]
+          });
+
+          issueNumber = newIssue.data.number;
+
+          console.log(`Created new issue with number: ${issueNumber}`);
+
+    - name: Calculate Issue Description Hash
+      id: issue_description_hash
+      if: ${{ steps.lookup-issue.outputs.issue_number != '-1' }}
+      uses: bash
+      run: |
+          current_hash=$(echo -n "${{ steps.lookup-issue.outputs.issue_description }}" | sha256sum)
+          new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
+
+          echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
+          echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
+
+    - name: Update Issue
+      id: update_issue
+      uses: actions/github-script@v6
+      if: ${{ steps.lookup-issue.outputs.issue_number != '-1' && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -132,25 +188,11 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
 
-          if (issueNumber == '-1') {
-            const newIssue = await github.rest.issues.create({
-              owner: owner,
-              repo: repo,
-              title: title,
-              body: body,
-              labels: ["drift"]
-            });
+          await github.rest.issues.update({
+            owner: owner,
+            repo: repo,
+            issue_number: issueNumber,
+            body: body
+          });
 
-            issueNumber = newIssue.data.number;
-
-            console.log(`Created new issue with number: ${issueNumber}`);
-          } else {
-            await github.rest.issues.update({
-              owner: owner,
-              repo: repo,
-              issue_number: issueNumber,
-              body: body
-            });
-
-            console.log(`Updated issue number: ${issueNumber}`);
-          }
+          console.log(`Updated issue number: ${issueNumber}`);
