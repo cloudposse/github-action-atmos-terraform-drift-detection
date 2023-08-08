@@ -165,7 +165,7 @@ runs:
     - name: Calculate Issue Description Hash
       id: issue_description_hash
       if: ${{ steps.lookup-issue.outputs.issue_number != '-1' }}
-      uses: bash
+      shell: bash
       run: |
           current_hash=$(echo -n "${{ steps.lookup-issue.outputs.issue_description }}" | sha256sum)
           new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
