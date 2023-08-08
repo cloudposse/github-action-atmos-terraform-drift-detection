@@ -130,16 +130,9 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
 
-          if (issueNumber > 0) {
-            await github.rest.issues.update({
-              owner: owner,
-              repo: repo,
-              issue_number: issueNumber,
-              body: body
-            });
+          console.log(`Incoming issue number: ${issueNumber}`);
 
-            console.log(`Updated issue number: ${issueNumber}`);
-          } else {
+          if (issueNumber == '-1') {
             const newIssue = await github.rest.issues.create({
               owner: owner,
               repo: repo,
@@ -148,4 +141,13 @@ runs:
             });
 
             console.log(`Created new issue with number: ${newIssue.data.number}`);
+          } else {
+            await github.rest.issues.update({
+              owner: owner,
+              repo: repo,
+              issue_number: issueNumber,
+              body: body
+            });
+
+            console.log(`Updated issue number: ${issueNumber}`);
           }
