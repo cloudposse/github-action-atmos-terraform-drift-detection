@@ -103,7 +103,7 @@ runs:
           const repo = "${{ github.event.repository.name }}";
 
           const issues = await github.rest.search.issuesAndPullRequests({
-            q: `repo:${owner}/${repo} is:issue in:title ${title}`
+            q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
           });
 
           let issueNumber = -1
