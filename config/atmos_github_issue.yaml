@@ -13,7 +13,7 @@ templates:
     ## :x: Plan Failed for `{{.Vars.component}}` in `{{.Vars.stack}}`!
     {{ end }}
     {{- if eq .ExitCode 0 }}
-    ## Plan Succeeded for `{{.Vars.component}}` in `{{.Vars.stack}}`
+    ## Drift Detected for `{{.Vars.component}}` in `{{.Vars.stack}}`
     
     {{ if .CreatedResources}}[![create](https://shields.io/badge/PLAN-CREATE-success?style=for-the-badge)](#user-content-create-{{.Vars.stack}}-{{.Vars.component}}){{ end }}
     {{- if .UpdatedResources }} [![change](https://shields.io/badge/PLAN-CHANGE-important?style=for-the-badge)](#user-content-change-{{.Vars.stack}}-{{.Vars.component}}){{ end }}
