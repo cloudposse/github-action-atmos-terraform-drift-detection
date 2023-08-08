@@ -89,7 +89,8 @@ templates:
     {{- end}}{{end}}
   metadata: |
     <details><summary>Metadata</summary>
-    ```
+
+    ```json
     {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}"}
     ```
     </details>
