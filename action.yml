@@ -70,3 +70,28 @@ runs:
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
         terraform-version: ${{ inputs.terraform-version }}
+
+    - name: Render Output
+      id: render-output
+      shell: bash
+      run: |
+        LOG_LEVEL=$([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO")
+
+        cd ${{ inputs.component-path }}
+
+        tfcmt \
+          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          -owner "${{ github.repository_owner }}" \
+          -repo "${{ github.event.repository.name }}" \
+          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "component:${{ inputs.component }}" \
+          -var "stack:${{ inputs.stack }}" \
+          -var "job:${{ github.job }}" \
+          --log-level $LOG_LEVEL \
+          --output output.md \
+          plan -- terraform show ${{ steps.atmos-plan.outputs.plan_file_path }}/${{ steps.atmos-plan.outputs.plan_file }}
+
+    - name: Print output
+      shell: bash
+      run: |
+        cat output.md
