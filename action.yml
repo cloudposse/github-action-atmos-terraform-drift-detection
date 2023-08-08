@@ -125,17 +125,5 @@ runs:
         script: |
           const fs = require('fs');
           const issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
-          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-          const body = fs.readFileSync(${{ github.action_path }}/output.md, 'utf8');
-          const owner = "${{ github.repository_owner }}";
-          const repo = "${{ github.event.repository.name }}";
-
-          console.log(`Incoming issue number: ${issueNumber}`);
-
-          if (issueNumber == '-1') {
-
-            console.log(`Created new issue with number: ${newIssue.data.number}`);
-          } else {
-
-            console.log(`Updated issue number: ${issueNumber}`);
-          }
+          
+          console.log(`Found issue number: ${issueNumber}`);
