@@ -87,24 +87,6 @@ templates:
     {{range .ErrorMessages}}
     * {{. -}}
     {{- end}}{{end}}
-  infracost: |
-    <details><summary>
-    {{- $cost := .Vars.infracost_total_monthly_cost | float64 }}
-    {{- $roundedCost := printf "%.2f" $cost }}
-    {{- if eq $cost 0.0 }}
-    Infracost Estimate: monthly cost will not change
-    {{- else if gt $cost 0.0 }}
-    Infracost Estimate: monthly cost will increase by ${{ $roundedCost }} 📈
-    {{- else }}
-    Infracost Estimate: monthly cost will decrease by ${{ $roundedCost }} 📉
-    {{- end }}
-    </summary>
-
-      ```
-      {{- b64dec .Vars.infracost_details_diff_breakdown | html }}
-      ```
-
-    </details>
 terraform:
   plan:
     disable_label: false
@@ -125,9 +107,6 @@ terraform:
       {{template "change_outside_terraform" .}}
       {{template "warning" .}}
       {{template "error_messages" .}}
-      {{if ne .Vars.infracost_details_diff_breakdown ""}}
-      {{template "infracost" .}}
-      {{end}}
     when_parse_error:
       template: |
         {{template "plan_title" .}}
