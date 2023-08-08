@@ -98,7 +98,6 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const { core } = require('@actions/core');
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
