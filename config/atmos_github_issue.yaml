@@ -88,7 +88,11 @@ templates:
     * {{. -}}
     {{- end}}{{end}}
   metadata: |
-    &lt;!-- {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}"} --&gt;
+    <details><summary>Metadata</summary>
+    ```
+    {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}"}
+    ```
+    </details>
 terraform:
   plan:
     disable_label: false
