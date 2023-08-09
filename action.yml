@@ -166,7 +166,7 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
           const issue_labels = "${{ inputs.issue_labels }}"
-          const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "") : [];
+          const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
           const newIssue = await github.rest.issues.create({
             owner: owner,
             repo: repo,
