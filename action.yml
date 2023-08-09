@@ -119,12 +119,12 @@ runs:
 
           if (issues.data.total_count > 0) {
             issueNumber = issues.data.items[0].number;
-            console.log(`Found issue number: ${issueNumber}`);
+            console.log(`Found issue: ${issueNumber}`);
 
             const issue = await github.rest.issues.get({
-              owner,
-              repo,
-              issueNumber
+              owner: owner,
+              repo: repo,
+              issue_number: issueNumber,
             });
 
             const description = issue.data.body;
