@@ -17,7 +17,7 @@ inputs:
   sha:
     description: "Commit SHA that will be used as suffix for plan file"
     required: true
-    default: ${{ env.GITHUB_SHA }}
+    default: ${{ github.sha }}
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: true
