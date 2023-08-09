@@ -14,6 +14,10 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: true
+  sha:
+    description: "Commit SHA that will be used as suffix for plan file"
+    required: true
+    default: ${{ github.ref }}
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: true
@@ -70,6 +74,7 @@ runs:
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
+        sha: ${{ inputs.sha }}
         component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
