@@ -129,12 +129,7 @@ runs:
               issue_number: issueNumber,
             });
 
-            const description = issue.data.body;
-            const currentOutputFilePath = "${{ github.action_path }}/current.md";
-
-            fs.writeFileSync(currentOutputFilePath, content);
-
-            core.setOutput('issue_description', description);
+            fs.writeFileSync("${{ github.action_path }}/current.md", issue.data.body);
           } else {
             console.log("Issue not found.");
           }
