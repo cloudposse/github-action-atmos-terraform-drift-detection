@@ -67,14 +67,14 @@ runs:
     - name: Checkout
       uses: actions/checkout@v3
       with:
-        ref: ${{ github.repository.default_branch }}
+        ref: ${{ github.event.repository.default_branch }}
         fetch-depth: 1
 
     - name: Get SHA
       shell: bash
       run: |
-        git checkout ${{ github.repository.default_branch }}
-        echo "default branch: ${{ github.repository.default_branch }}"
+        git checkout ${{ github.event.repository.default_branch }}
+        echo "default branch: ${{ github.event.repository.default_branch }}"
         default_branch_sha=$(git rev-parse HEAD)
         echo "default_branch_sha: $default_branch_sha"
 
