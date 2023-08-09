@@ -14,10 +14,6 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: true
-  sha:
-    description: "Commit SHA that will be used as suffix for plan file"
-    required: true
-    default: ${{ github.sha }}
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: true
@@ -73,6 +69,14 @@ runs:
       with:
         ref: ${{ github.repository.default_branch }}
         fetch-depth: 1
+
+    - name: Get SHA
+      shell: bash
+      run: |
+        git checkout ${{ github.repository.default_branch }}
+        echo "default branch: ${{ github.repository.default_branch }}"
+        default_branch_sha=$(git rev-parse HEAD)
+        echo "default_branch_sha: $default_branch_sha"
 
     - name: Get SHA
       id: default_branch_sha
