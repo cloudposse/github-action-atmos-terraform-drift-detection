@@ -35,7 +35,7 @@ inputs:
     required: false
     default: 'latest'
   atmos-config-path:
-    description: The path to the folder where atmos.yaml file is located
+    description: "The path to the folder where atmos.yaml file is located"
     required: false
     default: '.'
   terraform-version:
@@ -43,8 +43,16 @@ inputs:
     default: 'latest'
     required: false
   debug:
-    description: "Enable action debug mode. Default: 'false'"
+    description: "Enable action debug mode. Default: false"
     default: 'false'
+    required: false
+  create_issue:
+    description: "Whether to create GitHub issue if drift detected. Default: true"
+    default: 'true'
+    required: false
+  issue_labels:
+    description: "Comma separated list of labels to add to the drift issues. Default: drift"
+    default: 'drift'
     required: false
   token:
     description:
@@ -71,13 +79,13 @@ runs:
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
         terraform-version: ${{ inputs.terraform-version }}
+        debug: ${{ inputs.debug }}
 
     - name: Render Output
+      if: ${{ inputs.create_issue == 'true' }}
       id: render-output
       shell: bash
       run: |
-        LOG_LEVEL=$([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO")
-
         cd ${{ inputs.component-path }}
 
         tfcmt \
@@ -87,22 +95,16 @@ runs:
           -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
           -var "component:${{ inputs.component }}" \
           -var "componentPath:${{ inputs.component-path }}" \
+          -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
           -var "stack:${{ inputs.stack }}" \
           -var "job:${{ github.job }}" \
-          --log-level $LOG_LEVEL \
+          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
-    - name: Output Hash
-      id: output-hash
-      uses: actions/github-script@v6
-      with:
-        result-encoding: string
-        script: |
-          return glob.hashFiles('${{ github.action_path }}/output.md');
-
     - name: Lookup Issue by Title
       id: lookup-issue
+      if: ${{ inputs.create_issue == 'true' }}
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
@@ -112,7 +114,6 @@ runs:
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-
           const issues = await github.rest.search.issuesAndPullRequests({
             q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
           });
@@ -139,32 +140,32 @@ runs:
     - name: Create Issue
       id: create_issue
       uses: actions/github-script@v6
-      if: ${{ steps.lookup-issue.outputs.issue_number == '-1' }}
+      if: ${{ inputs.create_issue == 'true' && steps.lookup-issue.outputs.issue_number == '-1' }}
       with:
         github-token: ${{ inputs.token }}
         script: |
           const fs = require('fs');
 
-          let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
+          const issue_labels = "${{ inputs.issue_labels }}"
+          const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "") : [];
           const newIssue = await github.rest.issues.create({
             owner: owner,
             repo: repo,
             title: title,
             body: body,
-            labels: ["drift"]
+            labels: labels
           });
-
-          issueNumber = newIssue.data.number;
+          const issueNumber = newIssue.data.number;
 
           console.log(`Created new issue with number: ${issueNumber}`);
 
     - name: Calculate Issue Description Hash
       id: issue_description_hash
-      if: ${{ steps.lookup-issue.outputs.issue_number != '-1' }}
+      if: ${{ inputs.create_issue == 'true' && steps.lookup-issue.outputs.issue_number != '-1' }}
       shell: bash
       run: |
           current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
@@ -178,7 +179,7 @@ runs:
     - name: Update Issue
       id: update_issue
       uses: actions/github-script@v6
-      if: ${{ steps.lookup-issue.outputs.issue_number != '-1' && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
+      if: ${{ inputs.create_issue == 'true' && steps.lookup-issue.outputs.issue_number != '-1' && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -197,4 +198,4 @@ runs:
             body: body
           });
 
-          console.log(`Updated issue number: ${issueNumber}`);
+          console.log(`Updated issue: ${issueNumber}`);
