@@ -68,6 +68,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Print GitHub Context
+      shell: bash
+      run: echo "${{ toJson(github) }}"
+
     - name: Plan Atmos Component
       id: atmos-plan
       uses: cloudposse/github-action-atmos-terraform-plan@added-outputs
