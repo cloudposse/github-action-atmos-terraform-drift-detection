@@ -107,6 +107,8 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
+          const fs = require('fs');
+
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
@@ -128,8 +130,11 @@ runs:
             });
 
             const description = issue.data.body;
+            const currentOutputFilePath = "${{ github.action_path }}/current.md";
 
-            core.setOutput('issue_description', description);          
+            fs.writeFileSync(currentOutputFilePath, content);
+
+            core.setOutput('issue_description', description);
           } else {
             console.log("Issue not found.");
           }
@@ -167,16 +172,10 @@ runs:
       if: ${{ steps.lookup-issue.outputs.issue_number != '-1' }}
       shell: bash
       run: |
-          issue_description="${{ steps.lookup-issue.outputs.issue_description }}"
-
-          echo $issue_description
-          echo -n $issue_description | sha256sum
-
-          current_hash=$(echo -n $issue_description | sha256sum)
+          current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
           new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
 
-          echo $current_hash
-          echo $new_hash
+          echo "Hashes: $current_hash vs $new_hash"
 
           echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
           echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
