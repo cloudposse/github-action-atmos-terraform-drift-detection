@@ -70,20 +70,13 @@ runs:
         ref: ${{ github.event.repository.default_branch }}
         fetch-depth: 1
 
-    - name: Get SHA
-      shell: bash
-      run: |
-        git checkout ${{ github.event.repository.default_branch }}
-        echo "default branch: ${{ github.event.repository.default_branch }}"
-        default_branch_sha=$(git rev-parse HEAD)
-        echo "default_branch_sha: $default_branch_sha"
-
-    - name: Get SHA
-      id: default_branch_sha
+    - name: Plan File Name
+      id: plan_file
       shell: bash
       run: |
         default_branch_sha=$(git rev-parse HEAD)
-        echo "default_branch_sha=$default_branch_sha" >> $GITHUB_OUTPUT
+        PLAN_FILE=$(echo "${{ inputs.stack }}-${{ inputs.component }}-${default_branch_sha}.planfile" | sed 's#/#_#g') 
+        echo "plan_file=$PLAN_FILE" >> $GITHUB_OUTPUT
 
     - name: Plan Atmos Component
       id: atmos-plan
@@ -91,7 +84,7 @@ runs:
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
-        plan-file-suffix: ${{ steps.default_branch_sha.outputs.default_branch_sha }}
+        plan-file: ${{ steps.plan_file.outputs.plan_file }}
         component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
