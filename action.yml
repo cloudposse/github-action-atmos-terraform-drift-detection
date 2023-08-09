@@ -68,9 +68,18 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Print GitHub Context
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.repository.default_branch }}
+        fetch-depth: 1
+
+    - name: Get SHA
+      id: default_branch_sha
       shell: bash
-      run: echo "${{ toJson(github) }}"
+      run: |
+        default_branch_sha=$(git rev-parse HEAD)
+        echo "default_branch_sha=$default_branch_sha" >> $GITHUB_OUTPUT
 
     - name: Plan Atmos Component
       id: atmos-plan
@@ -78,7 +87,7 @@ runs:
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
-        sha: ${{ inputs.sha }}
+        plan-file-suffix: ${{ steps.default_branch_sha.outputs.default_branch_sha }}
         component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
@@ -87,7 +96,7 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
-        terraform-version: ${{ inputs.terraform-version }}
+        terraform-version: ${{ inputs.terraform-version }}t
         debug: ${{ inputs.debug }}
 
     - name: Render Output
