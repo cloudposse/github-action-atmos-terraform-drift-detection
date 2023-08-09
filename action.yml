@@ -167,8 +167,16 @@ runs:
       if: ${{ steps.lookup-issue.outputs.issue_number != '-1' }}
       shell: bash
       run: |
-          current_hash=$(echo -n "${{ steps.lookup-issue.outputs.issue_description }}" | sha256sum)
+          issue_description="${{ steps.lookup-issue.outputs.issue_description }}"
+
+          echo $issue_description
+          echo -n $issue_description | sha256sum
+
+          current_hash=$(echo -n $issue_description | sha256sum)
           new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
+
+          echo $current_hash
+          echo $new_hash
 
           echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
           echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
