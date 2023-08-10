@@ -102,7 +102,8 @@ runs:
         echo "has changes: ${{ steps.atmos-plan.outputs.has-changes }}"
         echo "has changes json: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) }}"
         echo "has changes 2: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}"
-        echo "has changes 2: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) == false }}"
+        echo "has changes 3: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) == false }}"
+        echo "has changes 4: ${{ steps.atmos-plan.outputs.has-changes == 'false' }}"
 
     - name: Render Output
       if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
