@@ -96,26 +96,26 @@ runs:
         terraform-version: ${{ inputs.terraform-version }}t
         debug: ${{ inputs.debug }}
 
-    # - name: Render Output
-    #   if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has_changes) }}
-    #   id: render-output
-    #   shell: bash
-    #   run: |
-    #     cd ${{ inputs.component-path }}
+    - name: Render Output
+      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has_changes) }}
+      id: render-output
+      shell: bash
+      run: |
+        cd ${{ inputs.component-path }}
 
-    #     tfcmt \
-    #       --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
-    #       -owner "${{ github.repository_owner }}" \
-    #       -repo "${{ github.event.repository.name }}" \
-    #       -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
-    #       -var "component:${{ inputs.component }}" \
-    #       -var "componentPath:${{ inputs.component-path }}" \
-    #       -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
-    #       -var "stack:${{ inputs.stack }}" \
-    #       -var "job:${{ github.job }}" \
-    #       --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
-    #       --output ${{ github.action_path }}/output.md \
-    #       plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
+        tfcmt \
+          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          -owner "${{ github.repository_owner }}" \
+          -repo "${{ github.event.repository.name }}" \
+          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "component:${{ inputs.component }}" \
+          -var "componentPath:${{ inputs.component-path }}" \
+          -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
+          -var "stack:${{ inputs.stack }}" \
+          -var "job:${{ github.job }}" \
+          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
+          --output ${{ github.action_path }}/output.md \
+          plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
     # - name: Lookup Issue by Title
     #   id: lookup-issue
