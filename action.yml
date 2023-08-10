@@ -96,130 +96,121 @@ runs:
         terraform-version: ${{ inputs.terraform-version }}t
         debug: ${{ inputs.debug }}
 
-    - name: Check for changes
+    - name: Render Output
+      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
+      id: render-output
       shell: bash
       run: |
-        echo "has changes: ${{ steps.atmos-plan.outputs.has-changes }}"
-        echo "has changes json: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) }}"
-        echo "has changes 2: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}"
-        echo "has changes 3: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) == false }}"
-        echo "has changes 4: ${{ steps.atmos-plan.outputs.has-changes == 'false' }}"
+        cd ${{ inputs.component-path }}
 
-    # - name: Render Output
-    #   if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
-    #   id: render-output
-    #   shell: bash
-    #   run: |
-    #     cd ${{ inputs.component-path }}
+        tfcmt \
+          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          -owner "${{ github.repository_owner }}" \
+          -repo "${{ github.event.repository.name }}" \
+          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "component:${{ inputs.component }}" \
+          -var "componentPath:${{ inputs.component-path }}" \
+          -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
+          -var "stack:${{ inputs.stack }}" \
+          -var "job:${{ github.job }}" \
+          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
+          --output ${{ github.action_path }}/output.md \
+          plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
 
-    #     tfcmt \
-    #       --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
-    #       -owner "${{ github.repository_owner }}" \
-    #       -repo "${{ github.event.repository.name }}" \
-    #       -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
-    #       -var "component:${{ inputs.component }}" \
-    #       -var "componentPath:${{ inputs.component-path }}" \
-    #       -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
-    #       -var "stack:${{ inputs.stack }}" \
-    #       -var "job:${{ github.job }}" \
-    #       --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
-    #       --output ${{ github.action_path }}/output.md \
-    #       plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
+    - name: Lookup Issue by Title
+      id: lookup-issue
+      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
 
-    # - name: Lookup Issue by Title
-    #   id: lookup-issue
-    #   if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
-    #   uses: actions/github-script@v6
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const issues = await github.rest.search.issuesAndPullRequests({
+            q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+          });
 
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
-    #       const issues = await github.rest.search.issuesAndPullRequests({
-    #         q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
-    #       });
+          let issueNumber = -1
 
-    #       let issueNumber = -1
+          if (issues.data.total_count > 0) {
+            issueNumber = issues.data.items[0].number;
+            console.log(`Found issue: ${issueNumber}`);
 
-    #       if (issues.data.total_count > 0) {
-    #         issueNumber = issues.data.items[0].number;
-    #         console.log(`Found issue: ${issueNumber}`);
+            const issue = await github.rest.issues.get({
+              owner: owner,
+              repo: repo,
+              issue_number: issueNumber,
+            });
 
-    #         const issue = await github.rest.issues.get({
-    #           owner: owner,
-    #           repo: repo,
-    #           issue_number: issueNumber,
-    #         });
+            fs.writeFileSync("${{ github.action_path }}/current.md", issue.data.body);
+          } else {
+            console.log("Issue not found.");
+          }
 
-    #         fs.writeFileSync("${{ github.action_path }}/current.md", issue.data.body);
-    #       } else {
-    #         console.log("Issue not found.");
-    #       }
+          core.setOutput('issue_number', issueNumber);
 
-    #       core.setOutput('issue_number', issueNumber);
+    - name: Create Issue
+      id: create_issue
+      uses: actions/github-script@v6
+      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number == '-1' }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
 
-    # - name: Create Issue
-    #   id: create_issue
-    #   uses: actions/github-script@v6
-    #   if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number == '-1' }}
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const issue_labels = "${{ inputs.issue_labels }}"
+          const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+          const newIssue = await github.rest.issues.create({
+            owner: owner,
+            repo: repo,
+            title: title,
+            body: body,
+            labels: labels
+          });
+          const issueNumber = newIssue.data.number;
 
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
-    #       const issue_labels = "${{ inputs.issue_labels }}"
-    #       const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
-    #       const newIssue = await github.rest.issues.create({
-    #         owner: owner,
-    #         repo: repo,
-    #         title: title,
-    #         body: body,
-    #         labels: labels
-    #       });
-    #       const issueNumber = newIssue.data.number;
+          console.log(`Created new issue with number: ${issueNumber}`);
 
-    #       console.log(`Created new issue with number: ${issueNumber}`);
+    - name: Calculate Issue Description Hash
+      id: issue_description_hash
+      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1' }}
+      shell: bash
+      run: |
+          current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
+          new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
 
-    # - name: Calculate Issue Description Hash
-    #   id: issue_description_hash
-    #   if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1' }}
-    #   shell: bash
-    #   run: |
-    #       current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
-    #       new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
+          echo "Hashes: $current_hash vs $new_hash"
 
-    #       echo "Hashes: $current_hash vs $new_hash"
+          echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
+          echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
 
-    #       echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
-    #       echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
+    - name: Update Issue
+      id: update_issue
+      uses: actions/github-script@v6
+      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1'  && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
 
-    # - name: Update Issue
-    #   id: update_issue
-    #   uses: actions/github-script@v6
-    #   if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1'  && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
+          let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
+          const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
+          const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
 
-    #       let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
+          await github.rest.issues.update({
+            owner: owner,
+            repo: repo,
+            issue_number: issueNumber,
+            body: body
+          });
 
-    #       await github.rest.issues.update({
-    #         owner: owner,
-    #         repo: repo,
-    #         issue_number: issueNumber,
-    #         body: body
-    #       });
-
-    #       console.log(`Updated issue: ${issueNumber}`);
+          console.log(`Updated issue: ${issueNumber}`);
