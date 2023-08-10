@@ -90,7 +90,7 @@ runs:
         debug: ${{ inputs.debug }}
 
     - name: Render Output
-      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
+      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has_changes) }}
       id: render-output
       shell: bash
       run: |
@@ -112,7 +112,7 @@ runs:
 
     - name: Lookup Issue by Title
       id: lookup-issue
-      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has-changes) }}
+      if: ${{ fromJSON(inputs.create_issue) && fromJSON(steps.atmos-plan.outputs.has_changes) }}
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
@@ -148,7 +148,7 @@ runs:
     - name: Create Issue
       id: create_issue
       uses: actions/github-script@v6
-      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number == '-1' }}
+      if: ${{ fromJSON(steps.atmos-plan.outputs.has_changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number == '-1' }}
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -173,7 +173,7 @@ runs:
 
     - name: Calculate Issue Description Hash
       id: issue_description_hash
-      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1' }}
+      if: ${{ fromJSON(steps.atmos-plan.outputs.has_changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1' }}
       shell: bash
       run: |
           current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
@@ -190,7 +190,7 @@ runs:
       if: >-
         ${{ 
           fromJSON(inputs.create_issue) &&
-          fromJSON(steps.atmos-plan.outputs.has-changes) &&
+          fromJSON(steps.atmos-plan.outputs.has_changes) &&
           steps.lookup-issue.outputs.issue_number != '-1' &&
           steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash
         }}
