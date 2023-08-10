@@ -93,7 +93,7 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         token: ${{ inputs.token }}
         atmos-version: ${{ inputs.atmos-version }}
-        terraform-version: ${{ inputs.terraform-version }}t
+        terraform-version: ${{ inputs.terraform-version }}
         debug: ${{ inputs.debug }}
 
     - name: Render Output
