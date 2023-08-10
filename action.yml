@@ -194,7 +194,13 @@ runs:
     - name: Update Issue
       id: update_issue
       uses: actions/github-script@v6
-      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1'  && steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash }}
+      if: >-
+        ${{ 
+          fromJSON(inputs.create_issue) &&
+          fromJSON(steps.atmos-plan.outputs.has-changes) &&
+          steps.lookup-issue.outputs.issue_number != '-1' &&
+          steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash
+        }}
       with:
         github-token: ${{ inputs.token }}
         script: |
