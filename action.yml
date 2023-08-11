@@ -77,7 +77,7 @@ runs:
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
-        plan-file: ${{ steps.plan_file.outputs.plan_file }}
+        sha: ${{ github.sha }}
         component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
@@ -101,11 +101,11 @@ runs:
           -owner "${{ github.repository_owner }}" \
           -repo "${{ github.event.repository.name }}" \
           -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "stack:${{ inputs.stack }}" \
           -var "component:${{ inputs.component }}" \
           -var "componentPath:${{ inputs.component-path }}" \
           -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
-          -var "stack:${{ inputs.stack }}" \
-          -var "job:${{ github.job }}" \
+          -var "commitSHA:${{ inputs.sha }}" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}

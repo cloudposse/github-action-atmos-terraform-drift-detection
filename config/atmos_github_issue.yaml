@@ -88,12 +88,7 @@ templates:
     * {{. -}}
     {{- end}}{{end}}
   metadata: |
-    <details><summary>Metadata</summary>
-
-    ```json
-    {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}", "planFile": "{{.Vars.planFile}}"}
-    ```
-    </details>
+    <!-- {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}", "planFile": "{{.Vars.planFile}}", "commitSHA": "{{.Vars.commitSHA}}"} -->
 terraform:
   plan:
     disable_label: false
