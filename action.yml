@@ -77,7 +77,7 @@ runs:
       with:
         component: ${{ inputs.component }}
         stack: ${{ inputs.stack }}
-        sha: ${{ github.sha }}
+        plan-id: "${{ github.sha }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
         component-path: ${{ inputs.component-path }}
         terraform-plan-role: ${{ inputs.terraform-plan-role }}
         terraform-state-bucket: ${{ inputs.terraform-state-bucket }}
@@ -96,6 +96,8 @@ runs:
       run: |
         cd ${{ inputs.component-path }}
 
+        plan_id="${{ github.sha }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"
+
         tfcmt \
           --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
           -owner "${{ github.repository_owner }}" \
@@ -105,7 +107,7 @@ runs:
           -var "component:${{ inputs.component }}" \
           -var "componentPath:${{ inputs.component-path }}" \
           -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
-          -var "commitSHA:${{ github.sha }}" \
+          -var "planId:$plan_id" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
