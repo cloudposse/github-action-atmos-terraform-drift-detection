@@ -105,7 +105,7 @@ runs:
           -var "component:${{ inputs.component }}" \
           -var "componentPath:${{ inputs.component-path }}" \
           -var "planFile:${{ steps.atmos-plan.outputs.plan-file }}" \
-          -var "commitSHA:${{ inputs.sha }}" \
+          -var "commitSHA:${{ github.sha }}" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output ${{ github.action_path }}/output.md \
           plan -- terraform show ${{ steps.atmos-plan.outputs.plan-file-path }}/${{ steps.atmos-plan.outputs.plan-file }}
