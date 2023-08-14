@@ -26,19 +26,19 @@ badges:
 
 related: []
 
-description: This Github Action is used to detect drift.
+description: This Github Action is used to detect drift
 
 introduction: |-
   This Github Action is used to detect drift.
 
-  It will be create or update github issue once drift is detect.
+  It will create or update github issue once drift is detect.
 
   It is expected to run this action in a workflow with a scheduled run.
 
   There is another companion action - [github-action-atmos-terraform-drift-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation).
 
 references:
-  - name: "github-action-atmos-terraform-remediation"
+  - name: "github-action-atmos-terraform-drift-remediation"
     description: "Companion GitHub Action for remediation"
     url: "https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation"
   - name: "github-action-atmos-terraform-select-components"
@@ -78,6 +78,7 @@ usage: |-
           uses: cloudposse/github-action-atmos-terraform-select-components@v0
           with:
             atmos-config-path: "${{ github.workspace }}/rootfs/usr/local/etc/atmos/"
+            jq-query: 'to_entries[] | .key as $parent | .value.components.terraform | to_entries[] | select(.value.settings.github.actions_enabled // false) | [$parent, .key] | join(",")'
 
     drift-detection:
       runs-on: ubuntu-latest

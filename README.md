@@ -30,7 +30,7 @@
 
 -->
 
-This Github Action is used to detect drift.
+This Github Action is used to detect drift
 
 ---
 
@@ -62,7 +62,7 @@ It's 100% Open Source and licensed under the [APACHE2](LICENSE).
 
 This Github Action is used to detect drift.
 
-It will be create or update github issue once drift is detect.
+It will create or update github issue once drift is detect.
 
 It is expected to run this action in a workflow with a scheduled run.
 
@@ -102,6 +102,7 @@ jobs:
         uses: cloudposse/github-action-atmos-terraform-select-components@v0
         with:
           atmos-config-path: "${{ github.workspace }}/rootfs/usr/local/etc/atmos/"
+          jq-query: 'to_entries[] | .key as $parent | .value.components.terraform | to_entries[] | select(.value.settings.github.actions_enabled // false) | [$parent, .key] | join(",")'
 
   drift-detection:
     runs-on: ubuntu-latest
@@ -177,7 +178,7 @@ Check out these related projects.
 
 For additional context, refer to some of these links.
 
-- [github-action-atmos-terraform-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation) - Companion GitHub Action for remediation
+- [github-action-atmos-terraform-drift-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation) - Companion GitHub Action for remediation
 - [github-action-atmos-terraform-select-components](https://github.com/cloudposse/github-action-atmos-terraform-select-components) - Companion GitHub Action to select components that are suitable for drift detection
 - [github-action-terraform-plan](https://github.com/cloudposse/github-action-atmos-terraform-plan) - GitHub Action to do Terraform Plan
 - [github-action-terraform-apply](https://github.com/cloudposse/github-action-atmos-terraform-apply) - GitHub Action to do Terraform Apply
@@ -312,10 +313,12 @@ Check out [our other projects][github], [follow us on twitter][twitter], [apply 
 ### Contributors
 
 <!-- markdownlint-disable -->
-|  [![Erik Osterman][osterman_avatar]][osterman_homepage]<br/>[Erik Osterman][osterman_homepage] | [![Daniel Miller][milldr_avatar]][milldr_homepage]<br/>[Daniel Miller][milldr_homepage] |
-|---|---|
+|  [![Zinovii Dmytriv][zdmytriv_avatar]][zdmytriv_homepage]<br/>[Zinovii Dmytriv][zdmytriv_homepage] | [![Erik Osterman][osterman_avatar]][osterman_homepage]<br/>[Erik Osterman][osterman_homepage] | [![Daniel Miller][milldr_avatar]][milldr_homepage]<br/>[Daniel Miller][milldr_homepage] |
+|---|---|---|
 <!-- markdownlint-restore -->
 
+  [zdmytriv_homepage]: https://github.com/zdmytriv
+  [zdmytriv_avatar]: https://img.cloudposse.com/150x150/https://github.com/zdmytriv.png
   [osterman_homepage]: https://github.com/osterman
   [osterman_avatar]: https://img.cloudposse.com/150x150/https://github.com/osterman.png
   [milldr_homepage]: https://github.com/milldr
