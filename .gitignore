@@ -128,3 +128,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.build-harness
+build-harness
+.idea/
+__pycache__
+.pyc
+.vscode/
+.DS_Store
+.pytest_cache
+affected-components.json
