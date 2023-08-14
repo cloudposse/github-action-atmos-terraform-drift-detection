@@ -10,7 +10,7 @@ ci:
 templates:
   plan_title: |
     {{ if eq .ExitCode 1 }}
-    ## :x: Plan Failed for `{{.Vars.component}}` in `{{.Vars.stack}}`!
+    ## :x: Drift Detection Failed for `{{.Vars.component}}` in `{{.Vars.stack}}`!
     {{ end }}
     {{- if eq .ExitCode 0 }}
     ## Drift Detected for `{{.Vars.component}}` in `{{.Vars.stack}}`
