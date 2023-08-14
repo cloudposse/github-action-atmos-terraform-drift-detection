@@ -6,7 +6,7 @@ branding:
   color: 'white'
 inputs:
   component:
-    description: "The name of the component to plan."
+    description: "The name of the component to verify for drift."
     required: true
   stack:
     description: "The stack name for the given component."
@@ -14,6 +14,14 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: true
+  create_issue:
+    description: "Whether to create GitHub issue if drift detected. Default: true"
+    default: 'true'
+    required: false
+  issue_labels:
+    description: "Comma separated list of labels to add to the drift issues. Default: drift"
+    default: 'drift'
+    required: false
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: true
@@ -46,14 +54,6 @@ inputs:
     description: "Enable action debug mode. Default: false"
     default: 'false'
     required: false
-  create_issue:
-    description: "Whether to create GitHub issue if drift detected. Default: true"
-    default: 'true'
-    required: false
-  issue_labels:
-    description: "Comma separated list of labels to add to the drift issues. Default: drift"
-    default: 'drift'
-    required: false
   token:
     description:
       Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically
@@ -64,13 +64,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Plan File Name
-      id: plan_file
-      shell: bash
-      run: |
-        PLAN_FILE=$(echo "${{ inputs.stack }}-${{ inputs.component }}-${{ github.sha }}.planfile" | sed 's#/#_#g') 
-        echo "plan_file=$PLAN_FILE" >> $GITHUB_OUTPUT
-
     - name: Plan Atmos Component
       id: atmos-plan
       uses: cloudposse/github-action-atmos-terraform-plan@added-outputs
@@ -119,8 +112,6 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const fs = require('fs');
-
           const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
@@ -139,8 +130,6 @@ runs:
               repo: repo,
               issue_number: issueNumber,
             });
-
-            fs.writeFileSync("${{ github.action_path }}/current.md", issue.data.body);
           } else {
             console.log("Issue not found.");
           }
@@ -150,7 +139,12 @@ runs:
     - name: Create Issue
       id: create_issue
       uses: actions/github-script@v6
-      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number == '-1' }}
+      if: >-
+        ${{ 
+          fromJSON(steps.atmos-plan.outputs.has-changes) &&
+          fromJSON(inputs.create_issue) &&
+          steps.lookup-issue.outputs.issue_number == '-1'
+        }}
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -173,19 +167,6 @@ runs:
 
           console.log(`Created new issue with number: ${issueNumber}`);
 
-    - name: Calculate Issue Description Hash
-      id: issue_description_hash
-      if: ${{ fromJSON(steps.atmos-plan.outputs.has-changes) && fromJSON(inputs.create_issue) && steps.lookup-issue.outputs.issue_number != '-1' }}
-      shell: bash
-      run: |
-          current_hash=$(cat "${{ github.action_path }}/current.md" | sha256sum)
-          new_hash=$(cat "${{ github.action_path }}/output.md" | sha256sum)
-
-          echo "Hashes: $current_hash vs $new_hash"
-
-          echo "current_hash=$current_hash" >> $GITHUB_OUTPUT
-          echo "new_hash=$new_hash" >> $GITHUB_OUTPUT
-
     - name: Update Issue
       id: update_issue
       uses: actions/github-script@v6
@@ -193,8 +174,7 @@ runs:
         ${{ 
           fromJSON(inputs.create_issue) &&
           fromJSON(steps.atmos-plan.outputs.has-changes) &&
-          steps.lookup-issue.outputs.issue_number != '-1' &&
-          steps.issue_description_hash.outputs.current_hash != steps.issue_description_hash.outputs.new_hash
+          steps.lookup-issue.outputs.issue_number != '-1'
         }}
       with:
         github-token: ${{ inputs.token }}
