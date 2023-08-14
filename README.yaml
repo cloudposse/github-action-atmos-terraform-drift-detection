@@ -108,6 +108,8 @@ include:
 
 # Contributors to this project
 contributors:
+  - name: "Zinovii Dmytriv"
+    github: "zdmytriv"
   - name: "Erik Osterman"
     github: "osterman"
   - name: "Daniel Miller"
