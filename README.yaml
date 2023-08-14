@@ -50,6 +50,9 @@ references:
   - name: "github-action-terraform-apply"
     description: "GitHub Action to do Terraform Apply"
     url: "https://github.com/cloudposse/github-action-atmos-terraform-apply"
+  - name: "github-action-terraform-plan-storage"
+    description: "A GitHub Action to securely store Terraform plan files in an S3 bucket with metadata storage in DynamoDB."
+    url: "https://github.com/cloudposse/github-action-terraform-plan-storage"
 
 usage: |-
   ### Workflow example
