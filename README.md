@@ -142,7 +142,7 @@ jobs:
 | atmos-config-path | The path to the folder where atmos.yaml file is located | . | false |
 | atmos-version | Atmos version to use for vendoring. Default 'latest' | latest | false |
 | aws-region | AWS region for assuming identity. | us-east-1 | false |
-| component | The name of the component to plan. | N/A | true |
+| component | The name of the component to verify for drift. | N/A | true |
 | component-path | The path to the base component. Atmos defines this value as component\_path. | N/A | true |
 | create\_issue | Whether to create GitHub issue if drift detected. Default: true | true | false |
 | debug | Enable action debug mode. Default: false | false | false |
