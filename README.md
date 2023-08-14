@@ -66,7 +66,7 @@ It will create or update github issue once drift is detect.
 
 It is expected to run this action in a workflow with a scheduled run.
 
-There is another companion action - [github-action-atmos-terraform-drift-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation).
+There is another companion action [github-action-atmos-terraform-drift-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation).
 
 
 
@@ -91,7 +91,7 @@ permissions:
   contents: read
 
 jobs:
-  selected-components:
+  select-components:
     runs-on: ubuntu-latest
     name: Select Components
     outputs:
@@ -107,11 +107,11 @@ jobs:
   drift-detection:
     runs-on: ubuntu-latest
     needs:
-      - selected-components
-    if: ${{ needs.selected-components.outputs.matrix != '{"include":[]}' }}
+      - select-components
+    if: ${{ needs.select-components.outputs.matrix != '{"include":[]}' }}
     strategy:
       fail-fast: false # Don't fail fast to avoid locking TF State
-      matrix: ${{ fromJson(needs.selected-components.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.select-components.outputs.matrix) }}
     name: ${{ matrix.stack_slug }}
     steps:
       - name: Drift Detection
