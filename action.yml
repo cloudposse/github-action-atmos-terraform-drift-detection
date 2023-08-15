@@ -70,8 +70,8 @@ runs:
           for (let i = 0; i < components.length; i++) {
             const component = components[i].component;
             const stack = components[i].stack;
-            const title = "Drift Detected in `${stack}-${component}`";
-            const body = fs.readFileSync("summary-${stack}____${component}", 'utf8');
+            const title = `Drift Detected in \`${stack}-${component}\``;
+            const body = fs.readFileSync(`summary-${stack}____${component}`, 'utf8');
             const issues = await github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
             });
