@@ -23,10 +23,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Debug
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Print the contents
       shell: bash
       run: |
-        ls -l $GITHUB_WORKSPACE/github-issues-summaries/
+        ls -l
+        cat summary-*/issue.md
 
     # - name: Lookup Issue by Title
     #   id: lookup-issue
