@@ -9,6 +9,10 @@ inputs:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
     default: 'drift'
     required: false
+  max-new-issues-to-create:
+    description: "Number of new issues to create at once. Default: 10"
+    default: '10'
+    required: true
   debug:
     description: "Enable action debug mode. Default: false"
     default: 'false'
@@ -28,10 +32,11 @@ runs:
       with:
         name: summary
 
-    - name: Parse component name
+    - name: Get Changed Components
+      id: changed_components
       shell: bash
       run: |
-        json_array="["
+        components="["
 
         for filename in summary-*.md; do
           stack=${filename#summary-}
@@ -39,99 +44,72 @@ runs:
           component=${filename#*____}
           component=${component%.md}
 
-          json_array+="{ \"stack\": \"$stack\", \"component\": \"$component\"},"
+          components+="{\"stack\": \"$stack\", \"component\": \"$component\"},"
         done
 
-        json_array=${json_array%,}
-        json_array+="]"
+        components=${components%,}
+        components+="]"
 
-        echo "$json_array" > summary.json
-        cat summary.json
+        echo "components=$components" >> $GITHUB_OUTPUT
 
-    # - name: Lookup Issue by Title
-    #   id: lookup-issue
-    #   uses: actions/github-script@v6
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
-    #       const issues = await github.rest.search.issuesAndPullRequests({
-    #         q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
-    #       });
+    - name: Create or Update Issue
+      id: lookup-issue
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
 
-    #       let issueNumber = -1
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const maxNewIssues = parseInt("${{ inputs.max-new-issues-to-create }}", 10);
+          const components = JSON.parse("${{ steps.changed_components.outputs.components }}");
 
-    #       if (issues.data.total_count > 0) {
-    #         issueNumber = issues.data.items[0].number;
-    #         console.log(`Found issue: ${issueNumber}`);
+          let currentNumberOfNewIssues = 0;
 
-    #         const issue = await github.rest.issues.get({
-    #           owner: owner,
-    #           repo: repo,
-    #           issue_number: issueNumber,
-    #         });
-    #       } else {
-    #         console.log("Issue not found.");
-    #       }
+          for (let i = 0; i < components.length; i++) {
+            const component = components[i].component;
+            const stack = components[i].stack;
+            const title = "Drift Detected in `${stack}-${component}`";
+            const body = fs.readFileSync("summary-${stack}____${component}", 'utf8');
+            const issues = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+            });
 
-    #       core.setOutput('issue_number', issueNumber);
+            if (issues.data.total_count > 0) {
+              const issueNumber = issues.data.items[0].number;
 
-    # - name: Create Issue
-    #   id: create_issue
-    #   uses: actions/github-script@v6
-    #   if: >-
-    #     ${{ 
-    #       fromJSON(steps.atmos-plan.outputs.has-changes) &&
-    #       steps.lookup-issue.outputs.issue_number == '-1'
-    #     }}
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
+              console.log(`Found issue: ${issueNumber}`);
 
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
-    #       const issue_labels = "${{ inputs.issue_labels }}"
-    #       const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
-    #       const newIssue = await github.rest.issues.create({
-    #         owner: owner,
-    #         repo: repo,
-    #         title: title,
-    #         body: body,
-    #         labels: labels
-    #       });
-    #       const issueNumber = newIssue.data.number;
+              await github.rest.issues.update({
+                owner: owner,
+                repo: repo,
+                issue_number: issueNumber,
+                body: body
+              });
 
-    #       console.log(`Created new issue with number: ${issueNumber}`);
+              console.log(`Updated issue: ${issueNumber}`);
+            } else {
+              if (currentNumberOfNewIssues < maxNewIssues) {
+                console.log("Issue not found. Creating ...");
 
-    # - name: Update Issue
-    #   id: update_issue
-    #   uses: actions/github-script@v6
-    #   if: >-
-    #     ${{ 
-    #       fromJSON(steps.atmos-plan.outputs.has-changes) &&
-    #       steps.lookup-issue.outputs.issue_number != '-1'
-    #     }}
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
+                const issue_labels = "${{ inputs.issue_labels }}"
+                const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+                const newIssue = await github.rest.issues.create({
+                  owner: owner,
+                  repo: repo,
+                  title: title,
+                  body: body,
+                  labels: labels
+                });
 
-    #       let issueNumber = '${{steps.lookup-issue.outputs.issue_number}}';
-    #       const title = "Drift Detected in `${{ inputs.stack }}-${{ inputs.component }}`";
-    #       const body = fs.readFileSync("${{ github.action_path }}/output.md", 'utf8');
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
+                const issueNumber = newIssue.data.number;
 
-    #       await github.rest.issues.update({
-    #         owner: owner,
-    #         repo: repo,
-    #         issue_number: issueNumber,
-    #         body: body
-    #       });
+                console.log(`Created new issue with number: ${issueNumber}`);
 
-    #       console.log(`Updated issue: ${issueNumber}`);
+                currentNumberOfNewIssues++;
+              } else {
+                console.log(`Reached maximum of new issues created: ${maxNewIssues}`);
+              }
+            }
+          }
