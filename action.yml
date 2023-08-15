@@ -28,12 +28,25 @@ runs:
       with:
         name: summary
 
-    - name: Print the contents
+    - name: Parse component name
       shell: bash
       run: |
-        ls -l
-        ls -l $GITHUB_WORKSPACE
-        ls -l $GITHUB_WORKSPACE/summary-*
+        json_array="["
+
+        for filename in summary-*.md; do
+          stack=${filename#summary-}
+          stack=${stack%%____*}
+          component=${filename#*____}
+          component=${component%.md}
+
+          json_array+="{ \"stack\": \"$stack\", \"component\": \"$component\"},"
+        done
+
+        json_array=${json_array%,}
+        json_array+="]"
+
+        echo "$json_array" > summary.json
+        cat summary.json
 
     # - name: Lookup Issue by Title
     #   id: lookup-issue
