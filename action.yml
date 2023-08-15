@@ -25,12 +25,13 @@ runs:
   steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v3
+      with:
+        name: summary
 
     - name: Print the contents
       shell: bash
       run: |
         ls -l
-        cat summary-*/issue.md
 
     # - name: Lookup Issue by Title
     #   id: lookup-issue
