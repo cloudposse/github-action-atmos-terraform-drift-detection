@@ -5,7 +5,7 @@ branding:
   icon: 'server'
   color: 'white'
 inputs:
-  issue_labels:
+  issue-labels:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
     default: 'drift'
     required: false
@@ -93,8 +93,8 @@ runs:
               if (currentNumberOfNewIssues < maxNewIssues) {
                 console.log("Issue not found. Creating ...");
 
-                const issue_labels = "${{ inputs.issue_labels }}"
-                const labels = issue_labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+                const issue_labels = "${{ inputs.issue-labels }}"
+                const labels = issue-labels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
                 const newIssue = await github.rest.issues.create({
                   owner: owner,
                   repo: repo,
