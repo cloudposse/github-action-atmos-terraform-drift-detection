@@ -32,6 +32,8 @@ runs:
       shell: bash
       run: |
         ls -l
+        ls -l $GITHUB_WORKSPACE
+        ls -l $GITHUB_WORKSPACE/summary-*
 
     # - name: Lookup Issue by Title
     #   id: lookup-issue
