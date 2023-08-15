@@ -63,7 +63,7 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
           const maxNewIssues = parseInt("${{ inputs.max-new-issues-to-create }}", 10);
-          const components = JSON.parse("${{ steps.changed_components.outputs.components }}");
+          const components = JSON.parse('${{ steps.changed_components.outputs.components }}');
 
           let currentNumberOfNewIssues = 0;
 
