@@ -80,7 +80,7 @@ runs:
         name: plan-artifacts
 
     - name: Debug
-      if: fromJSON(inputs.debug) }}
+      if: ${{ fromJSON(inputs.debug) }}
       shell: bash
       run: |
         pwd
