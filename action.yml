@@ -127,8 +127,8 @@ runs:
             }
           }
 
-          const serializedComponentsWithIssues = JSON.stringify(componentsWithIssues, null, 2);
-          const serializedComponentsWithoutIssues = JSON.stringify(componentsWithoutIssues, null, 2);
+          const serializedComponentsWithIssues = JSON.stringify(componentsWithIssues);
+          const serializedComponentsWithoutIssues = JSON.stringify(componentsWithoutIssues);
 
           console.log(serializedComponentsWithIssues);
           console.log(serializedComponentsWithoutIssues);
