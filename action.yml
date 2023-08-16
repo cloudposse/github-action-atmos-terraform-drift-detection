@@ -127,8 +127,14 @@ runs:
             }
           }
 
-          core.setOutput('components_with_issues', JSON.stringify(componentsWithIssues, null, 2));
-          core.setOutput('components_without_issues', JSON.stringify(componentsWithoutIssues, null, 2));
+          const serializedComponentsWithIssues = JSON.stringify(componentsWithIssues, null, 2);
+          const serializedComponentsWithoutIssues = JSON.stringify(componentsWithoutIssues, null, 2);
+
+          console.log(serializedComponentsWithIssues);
+          console.log(serializedComponentsWithoutIssues);
+
+          core.setOutput('components_with_issues', serializedComponentsWithIssues);
+          core.setOutput('components_without_issues', serializedComponentsWithoutIssues);
 
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
