@@ -135,14 +135,6 @@ runs:
           core.setOutput('components_with_issues', JSON.stringify(componentsWithIssues, null, 2));
           core.setOutput('components_without_issues', JSON.stringify(componentsWithoutIssues, null, 2));
 
-    - name: Lookup Issues No-Op
-      id: lookup-issues
-      if: ${{ inputs.mode != 'triage' }}
-      shell: bash
-      run: |
-        echo "components_with_issues='{"include":[]}'" >> $GITHUB_OUTPUT
-        echo "components_without_issues='{"include":[]}'" >> $GITHUB_OUTPUT
-
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
       shell: bash
