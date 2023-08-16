@@ -136,6 +136,12 @@ runs:
           core.setOutput('components-with-issues', serializedComponentsWithIssues);
           core.setOutput('components-without-issues', serializedComponentsWithoutIssues);
 
+    - name: Debug
+      if: ${{ inputs.mode == 'triage' }}
+      shell: bash
+      run: |
+        echo "components-with-issues: ${{ steps.lookup-issues.outputs.components-with-issues }}"
+
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
       shell: bash
