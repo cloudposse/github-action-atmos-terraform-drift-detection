@@ -13,6 +13,34 @@ inputs:
     description: "Number of new issues to create at once. Default: 10"
     default: '10'
     required: true
+  terraform-plan-role:
+    description: "The AWS role to be used to plan Terraform."
+    required: true
+  terraform-state-role:
+    description: "The AWS role to be used to retrieve the planfile from AWS."
+    required: true
+  terraform-state-bucket:
+    description: "The S3 Bucket where the planfiles are stored."
+    required: true
+  terraform-state-table:
+    description: "The DynamoDB table where planfile metadata is stored."
+    required: true
+  aws-region:
+    description: "AWS region for assuming identity."
+    required: false
+    default: "us-east-1"
+  atmos-version:
+    description: "Atmos version to use for vendoring. Default 'latest'"
+    required: false
+    default: 'latest'
+  atmos-config-path:
+    description: "The path to the atmos.yaml file"
+    required: false
+    default: atmos.yaml
+  terraform-version:
+    description: 'The version of Terraform CLI to install. Instead of full version string you can also specify constraint string starting with "<" (for example `<1.13.0`) to install the latest version satisfying the constraint. A value of `latest` will install the latest version of Terraform CLI. Defaults to `latest`.'
+    default: 'latest'
+    required: false
   debug:
     description: "Enable action debug mode. Default: false"
     default: 'false'
@@ -27,89 +55,95 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Download all artifacts
+    - name: Download Artifacts
       uses: actions/download-artifact@v3
       with:
-        name: summary
+        name: plan-artifacts
 
-    - name: Get Changed Components
-      id: changed_components
+    - name: Display downloaded files
       shell: bash
       run: |
-        components="["
+        ls -R
+        pwd
 
-        for filename in summary-*.md; do
-          stack=${filename#summary-}
-          stack=${stack%%____*}
-          component=${filename#*____}
-          component=${component%.md}
+    # - name: Get Changed Components
+    #   id: changed_components
+    #   shell: bash
+    #   run: |
+    #     components="["
 
-          components+="{\"stack\": \"$stack\", \"component\": \"$component\"},"
-        done
+    #     for filename in summary-*.md; do
+    #       stack=${filename#summary-}
+    #       stack=${stack%%____*}
+    #       component=${filename#*____}
+    #       component=${component%.md}
 
-        components=${components%,}
-        components+="]"
+    #       components+="{\"stack\": \"$stack\", \"component\": \"$component\"},"
+    #     done
 
-        echo "components=$components" >> $GITHUB_OUTPUT
+    #     components=${components%,}
+    #     components+="]"
 
-    - name: Create or Update Issue
-      id: lookup-issue
-      uses: actions/github-script@v6
-      with:
-        github-token: ${{ inputs.token }}
-        script: |
-          const fs = require('fs');
+    #     echo "components=$components" >> $GITHUB_OUTPUT
 
-          const owner = "${{ github.repository_owner }}";
-          const repo = "${{ github.event.repository.name }}";
-          const maxNewIssues = parseInt("${{ inputs.max-new-issues-to-create }}", 10);
-          const components = JSON.parse('${{ steps.changed_components.outputs.components }}');
+    # - name: Create or Update Issue
+    #   id: lookup-issue
+    #   uses: actions/github-script@v6
+    #   with:
+    #     github-token: ${{ inputs.token }}
+    #     script: |
+    #       const fs = require('fs');
 
-          let currentNumberOfNewIssues = 0;
+    #       const owner = "${{ github.repository_owner }}";
+    #       const repo = "${{ github.event.repository.name }}";
+    #       const maxNewIssues = parseInt("${{ inputs.max-new-issues-to-create }}", 10);
+    #       const components = JSON.parse('${{ steps.changed_components.outputs.components }}');
 
-          for (let i = 0; i < components.length; i++) {
-            const component = components[i].component;
-            const stack = components[i].stack;
-            const title = `Drift Detected in \`${stack}-${component}\``;
-            const body = fs.readFileSync(`summary-${stack}____${component}.md`, 'utf8');
-            const issues = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
-            });
+    #       let currentNumberOfNewIssues = 0;
 
-            if (issues.data.total_count > 0) {
-              const issueNumber = issues.data.items[0].number;
+    #       for (let i = 0; i < components.length; i++) {
+    #         const component = components[i].component;
+    #         const stack = components[i].stack;
+    #         const title = `Drift Detected in \`${stack}-${component}\``;
+    #         const body = fs.readFileSync(`summary-${stack}____${component}.md`, 'utf8');
+    #         const issues = await github.rest.search.issuesAndPullRequests({
+    #           q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+    #         });
 
-              console.log(`Found issue: ${issueNumber}`);
+    #         if (issues.data.total_count > 0) {
+    #           const issueNumber = issues.data.items[0].number;
 
-              await github.rest.issues.update({
-                owner: owner,
-                repo: repo,
-                issue_number: issueNumber,
-                body: body
-              });
+    #           console.log(`Found issue: ${issueNumber}`);
 
-              console.log(`Updated issue: ${issueNumber}`);
-            } else {
-              if (currentNumberOfNewIssues < maxNewIssues) {
-                console.log("Issue not found. Creating ...");
+    #           await github.rest.issues.update({
+    #             owner: owner,
+    #             repo: repo,
+    #             issue_number: issueNumber,
+    #             body: body
+    #           });
 
-                const issueLabels = "${{ inputs.issue-labels }}"
-                const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
-                const newIssue = await github.rest.issues.create({
-                  owner: owner,
-                  repo: repo,
-                  title: title,
-                  body: body,
-                  labels: labels
-                });
+    #           console.log(`Updated issue: ${issueNumber}`);
+    #         } else {
+    #           if (currentNumberOfNewIssues < maxNewIssues) {
+    #             console.log("Issue not found. Creating ...");
 
-                const issueNumber = newIssue.data.number;
+    #             const issueLabels = "${{ inputs.issue-labels }}"
+    #             const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+    #             const newIssue = await github.rest.issues.create({
+    #               owner: owner,
+    #               repo: repo,
+    #               title: title,
+    #               body: body,
+    #               labels: labels
+    #             });
 
-                console.log(`Created new issue with number: ${issueNumber}`);
+    #             const issueNumber = newIssue.data.number;
 
-                currentNumberOfNewIssues++;
-              } else {
-                console.log(`Reached maximum of new issues created: ${maxNewIssues}`);
-              }
-            }
-          }
+    #             console.log(`Created new issue with number: ${issueNumber}`);
+
+    #             currentNumberOfNewIssues++;
+    #           } else {
+    #             console.log(`Reached maximum of new issues created: ${maxNewIssues}`);
+    #           }
+    #         }
+    #       }
