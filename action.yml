@@ -64,12 +64,12 @@ inputs:
       GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
     default: ${{ github.server_url == 'https://github.com' && github.token || '' }}
 outputs:
-  components_with_issues:
+  components-with-issues:
     description: A matrix for components that have issues
-    value: ${{ steps.lookup-issues.outputs.components_with_issues }}
-  components_without_issues:
+    value: ${{ steps.lookup-issues.outputs.components-with-issues }}
+  components-without-issues:
     description: A matrix for components that do not have issues
-    value: ${{ steps.lookup-issues.outputs.components_without_issues }}
+    value: ${{ steps.lookup-issues.outputs.components-without-issues }}
 
 runs:
   using: "composite"
@@ -133,8 +133,8 @@ runs:
           console.log(serializedComponentsWithIssues);
           console.log(serializedComponentsWithoutIssues);
 
-          core.setOutput('components_with_issues', serializedComponentsWithIssues);
-          core.setOutput('components_without_issues', serializedComponentsWithoutIssues);
+          core.setOutput('components-with-issues', serializedComponentsWithIssues);
+          core.setOutput('components-without-issues', serializedComponentsWithoutIssues);
 
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
