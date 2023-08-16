@@ -5,6 +5,9 @@ branding:
   icon: 'server'
   color: 'white'
 inputs:
+  mode:
+    description: "Drift detection mode. One of ['triage','create_issue','update_issue']"
+    required: true
   issue-labels:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
     default: 'drift'
@@ -12,16 +15,25 @@ inputs:
   max-new-issues-to-create:
     description: "Number of new issues to create at once. Default: 10"
     default: '10'
-    required: true
+    required: false
+  component:
+    description: "The name of the component to plan."
+    required: false
+  stack:
+    description: "The stack name for the given component."
+    required: false
+  component-path:
+    description: "The path to the base component. Atmos defines this value as component_path."
+    required: false
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
-    required: true
+    required: false
   terraform-state-role:
     description: "The AWS role to be used to retrieve the planfile from AWS."
-    required: true
+    required: false
   terraform-state-bucket:
     description: "The S3 Bucket where the planfiles are stored."
-    required: true
+    required: false
   terraform-state-table:
     description: "The DynamoDB table where planfile metadata is stored."
     required: true
@@ -51,6 +63,13 @@ inputs:
       not supplied by the user. When running this action on github.com, the default value is sufficient. When running on
       GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
     default: ${{ github.server_url == 'https://github.com' && github.token || '' }}
+outputs:
+  components_with_issues:
+    description: A matrix for components that have issues
+    value: ${{ steps.lookup-issues.outputs.components_with_issues }}
+  components_without_issues:
+    description: A matrix for components that do not have issues
+    value: ${{ steps.lookup-issues.outputs.components_without_issues }}
 
 runs:
   using: "composite"
@@ -60,90 +79,78 @@ runs:
       with:
         name: plan-artifacts
 
-    - name: Display downloaded files
+    - name: Lookup Issues
+      id: lookup-issues
+      if: ${{ inputs.mode == 'triage' }}
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          const dirPath = '.';
+          const files = fs.readdirSync(dirPath);
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+
+          const normalizedSlugs = [...new Set(files
+            .filter(file => file.endsWith('.metadata.json'))
+            .map(file => file.replace('.metadata.json', '')))];
+
+          type ComponentStack = {
+            component: string;
+            stack: string;
+            componentPath: string;
+            stack_slug: string;
+          };
+
+          type IncludeObject = {
+            include: ComponentStack[];
+          };
+
+          const componentsWithIssues: IncludeObject = { include: [] };
+          const componentsWithoutIssues: IncludeObject = { include: [] };
+
+          for (let i = 0; i < normalizedSlugs.length; i++) {
+            const normalizedSlug = normalizedSlugs[i];
+            const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
+            const stack = metadata.stack;
+            const component = metadata.component;
+            const stackSlug = `${stack}-${component}`
+            const componentPath = metadata.componentPath;
+            const title = `Drift Detected in \`${stack}-${component}\``;
+
+            const issues = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+            });
+
+            if (issues.data.total_count > 0) {
+              componentsWithIssues.include.push({ component: component, stack: stack, component_path: componentPath, stack_slug: stackSlug });
+            } else {
+              componentsWithoutIssues.include.push({ component: component, stack: stack, component_path: componentPath, stack_slug: stackSlug });
+            }
+          }
+
+          core.setOutput('components_with_issues', JSON.stringify(componentsWithIssues, null, 2));
+          core.setOutput('components_without_issues', JSON.stringify(componentsWithoutIssues, null, 2));
+
+    - name: Lookup Issues No-Op
+      id: lookup-issues
+      if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
-        ls -R
-        pwd
+        echo "components_with_issues='{"include":[]}'" >> $GITHUB_OUTPUT
+        echo "components_without_issues='{"include":[]}'" >> $GITHUB_OUTPUT
 
-    # - name: Get Changed Components
-    #   id: changed_components
-    #   shell: bash
-    #   run: |
-    #     components="["
+    - name: Create Issue
+      if: ${{ inputs.mode == 'create_issue' }}
+      shell: bash
+      run: |
+        echo "${{ inputs.stack }}-${{ inputs.component }}"
 
-    #     for filename in summary-*.md; do
-    #       stack=${filename#summary-}
-    #       stack=${stack%%____*}
-    #       component=${filename#*____}
-    #       component=${component%.md}
-
-    #       components+="{\"stack\": \"$stack\", \"component\": \"$component\"},"
-    #     done
-
-    #     components=${components%,}
-    #     components+="]"
-
-    #     echo "components=$components" >> $GITHUB_OUTPUT
-
-    # - name: Create or Update Issue
-    #   id: lookup-issue
-    #   uses: actions/github-script@v6
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const fs = require('fs');
-
-    #       const owner = "${{ github.repository_owner }}";
-    #       const repo = "${{ github.event.repository.name }}";
-    #       const maxNewIssues = parseInt("${{ inputs.max-new-issues-to-create }}", 10);
-    #       const components = JSON.parse('${{ steps.changed_components.outputs.components }}');
-
-    #       let currentNumberOfNewIssues = 0;
-
-    #       for (let i = 0; i < components.length; i++) {
-    #         const component = components[i].component;
-    #         const stack = components[i].stack;
-    #         const title = `Drift Detected in \`${stack}-${component}\``;
-    #         const body = fs.readFileSync(`summary-${stack}____${component}.md`, 'utf8');
-    #         const issues = await github.rest.search.issuesAndPullRequests({
-    #           q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
-    #         });
-
-    #         if (issues.data.total_count > 0) {
-    #           const issueNumber = issues.data.items[0].number;
-
-    #           console.log(`Found issue: ${issueNumber}`);
-
-    #           await github.rest.issues.update({
-    #             owner: owner,
-    #             repo: repo,
-    #             issue_number: issueNumber,
-    #             body: body
-    #           });
-
-    #           console.log(`Updated issue: ${issueNumber}`);
-    #         } else {
-    #           if (currentNumberOfNewIssues < maxNewIssues) {
-    #             console.log("Issue not found. Creating ...");
-
-    #             const issueLabels = "${{ inputs.issue-labels }}"
-    #             const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
-    #             const newIssue = await github.rest.issues.create({
-    #               owner: owner,
-    #               repo: repo,
-    #               title: title,
-    #               body: body,
-    #               labels: labels
-    #             });
-
-    #             const issueNumber = newIssue.data.number;
-
-    #             console.log(`Created new issue with number: ${issueNumber}`);
-
-    #             currentNumberOfNewIssues++;
-    #           } else {
-    #             console.log(`Reached maximum of new issues created: ${maxNewIssues}`);
-    #           }
-    #         }
-    #       }
+    - name: Update Issue
+      if: ${{ inputs.mode == 'update_issue' }}
+      shell: bash
+      run: |
+        echo "${{ inputs.stack }}-${{ inputs.component }}"
