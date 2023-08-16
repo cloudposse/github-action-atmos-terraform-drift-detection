@@ -79,6 +79,13 @@ runs:
       with:
         name: plan-artifacts
 
+    - name: Debug
+      if: fromJSON(inputs.debug) }}
+      shell: bash
+      run: |
+        pwd
+        ls -l
+
     - name: Lookup Issues
       id: lookup-issues
       if: ${{ inputs.mode == 'triage' }}
@@ -163,6 +170,9 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.component-path }}
+
+        pwd
+        ls -l $GITHUB_WORKSPACE
 
         tfcmt \
           --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
