@@ -152,6 +152,12 @@ runs:
       run: |
         echo "/usr/local/bin" >> $GITHUB_PATH
 
+    - name: Setup tfcmt
+      if: ${{ inputs.mode != 'triage' }}
+      uses: shmokmt/actions-setup-tfcmt@v2
+      with:
+        version: v4.4.1
+
     - name: Render Summary
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
