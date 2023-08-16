@@ -98,6 +98,21 @@ runs:
             .filter(file => file.endsWith('.metadata.json'))
             .map(file => file.replace('.metadata.json', '')))];
 
+          type Component = {
+            component: string;
+            stack: string;
+            componentPath: string;
+            stackSlug: string;
+          };
+
+          type Matrix = {
+            include: Component[];
+          };
+
+          const componentsWithIssues: Matrix = { include: [] };
+          const componentsWithoutIssues: Matrix = { include: [] };
+
+
 
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
