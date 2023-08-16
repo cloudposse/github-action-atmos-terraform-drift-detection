@@ -162,7 +162,7 @@ runs:
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
-        cd ${{ inputs.componentPath }}
+        cd ${{ inputs.component-path }}
 
         tfcmt \
           --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
@@ -171,7 +171,7 @@ runs:
           -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
           -var "stack:${{ inputs.stack }}" \
           -var "component:${{ inputs.component }}" \
-          -var "componentPath:${{ inputs.componentPath }}" \
+          -var "componentPath:${{ inputs.component-path }}" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md" \
           plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
