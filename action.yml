@@ -127,20 +127,55 @@ runs:
             }
           }
 
-          const serializedComponentsWithIssues = JSON.stringify(componentsWithIssues);
-          const serializedComponentsWithoutIssues = JSON.stringify(componentsWithoutIssues);
+          core.setOutput('components-with-issues', JSON.stringify(componentsWithIssues));
+          core.setOutput('components-without-issues', JSON.stringify(componentsWithoutIssues));
 
-          console.log(serializedComponentsWithIssues);
-          console.log(serializedComponentsWithoutIssues);
+    - name: Checkout
+      if: ${{ inputs.mode != 'triage' }}
+      uses: actions/checkout@v3
 
-          core.setOutput('components-with-issues', serializedComponentsWithIssues);
-          core.setOutput('components-without-issues', serializedComponentsWithoutIssues);
+    - name: Install terraform
+      if: ${{ inputs.mode != 'triage' }}
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
 
-    - name: Debug
-      if: ${{ inputs.mode == 'triage' }}
+    - name: Setup Node
+      if: ${{ inputs.mode != 'triage' }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+
+    - name: Update path for tfcmt
+      if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
-        echo "components-with-issues: ${{ steps.lookup-issues.outputs.components-with-issues }}"
+        echo "/usr/local/bin" >> $GITHUB_PATH
+
+    - name: Render Summary
+      if: ${{ inputs.mode != 'triage' }}
+      shell: bash
+      run: |
+        cd ${{ inputs.componentPath }}
+
+        tfcmt \
+          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          -owner "${{ github.repository_owner }}" \
+          -repo "${{ github.event.repository.name }}" \
+          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "stack:${{ inputs.stack }}" \
+          -var "component:${{ inputs.component }}" \
+          -var "componentPath:${{ inputs.componentPath }}" \
+          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
+          --output "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md" \
+          plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
+
+    - name: Update Issue
+      if: ${{ inputs.mode != 'triage' }}
+      shell: bash
+      run: |
+        ls -l
+        cat "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md"
 
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
@@ -153,3 +188,11 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.stack }}-${{ inputs.component }}"
+
+    - name: Update Issue
+      if: ${{ inputs.mode != 'triage' }}
+      shell: bash
+      run: |
+        # failing intentionally
+        # need for debugging
+        exit 1
