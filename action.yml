@@ -98,21 +98,37 @@ runs:
             .filter(file => file.endsWith('.metadata.json'))
             .map(file => file.replace('.metadata.json', '')))];
 
-          type Component = {
-            component: string;
-            stack: string;
-            componentPath: string;
-            stackSlug: string;
-          };
+          const componentsWithIssues = { include: [] };
+          const componentsWithoutIssues = { include: [] };
 
-          type Matrix = {
-            include: Component[];
-          };
+          for (let i = 0; i < normalizedSlugs.length; i++) {
+            const normalizedSlug = normalizedSlugs[i];
+            const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
+            const stack = metadata.stack;
+            const component = metadata.component;
+            const stackSlug = `${stack}-${component}`
+            const componentPath = metadata.componentPath;
+            const title = `Drift Detected in \`${stack}-${component}\``;
+            const matrixComponent = {
+              component: component,
+              stack: stack,
+              componentPath: componentPath,
+              stackSlug: stackSlug
+            }
 
-          const componentsWithIssues: Matrix = { include: [] };
-          const componentsWithoutIssues: Matrix = { include: [] };
+            const issues = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+            });
 
+            if (issues.data.total_count > 0) {
+              componentsWithIssues.include.push(matrixComponent);
+            } else {
+              componentsWithoutIssues.include.push(matrixComponent);
+            }
+          }
 
+          core.setOutput('components_with_issues', JSON.stringify(componentsWithIssues, null, 2));
+          core.setOutput('components_without_issues', JSON.stringify(componentsWithoutIssues, null, 2));
 
     - name: Create Issue
       if: ${{ inputs.mode == 'create_issue' }}
