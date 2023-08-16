@@ -98,19 +98,19 @@ runs:
             .filter(file => file.endsWith('.metadata.json'))
             .map(file => file.replace('.metadata.json', '')))];
 
-          type ComponentStack = {
+          type Component = {
             component: string;
             stack: string;
             componentPath: string;
-            stack_slug: string;
+            stackSlug: string;
           };
 
-          type IncludeObject = {
-            include: ComponentStack[];
+          type Matrix = {
+            include: Component[];
           };
 
-          const componentsWithIssues: IncludeObject = { include: [] };
-          const componentsWithoutIssues: IncludeObject = { include: [] };
+          const componentsWithIssues: Matrix = { include: [] };
+          const componentsWithoutIssues: Matrix = { include: [] };
 
           for (let i = 0; i < normalizedSlugs.length; i++) {
             const normalizedSlug = normalizedSlugs[i];
@@ -120,15 +120,21 @@ runs:
             const stackSlug = `${stack}-${component}`
             const componentPath = metadata.componentPath;
             const title = `Drift Detected in \`${stack}-${component}\``;
+            const component: Component = {
+              component: component,
+              stack: stack,
+              componentPath: componentPath,
+              stackSlug: stackSlug
+            }
 
             const issues = await github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
             });
 
             if (issues.data.total_count > 0) {
-              componentsWithIssues.include.push({ component: component, stack: stack, component_path: componentPath, stack_slug: stackSlug });
+              componentsWithIssues.include.push(component);
             } else {
-              componentsWithoutIssues.include.push({ component: component, stack: stack, component_path: componentPath, stack_slug: stackSlug });
+              componentsWithoutIssues.include.push(component);
             }
           }
 
