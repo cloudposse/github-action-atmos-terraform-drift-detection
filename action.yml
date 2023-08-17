@@ -25,6 +25,9 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: false
+  issue-number:
+    description: "Issue number"
+    required: false
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: false
@@ -315,7 +318,7 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
           const body = fs.readFileSync(`issue-description.md`, 'utf8');
-          const issueNumber = issues.data.items[0].number;
+          const issueNumber = parseInt("${{ inputs.issue-number }}", 10);
 
           console.log(`Found issue: ${issueNumber}`);
 
