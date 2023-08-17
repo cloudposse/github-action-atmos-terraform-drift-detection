@@ -28,6 +28,9 @@ inputs:
   terraform-plan-role:
     description: "The AWS role to be used to plan Terraform."
     required: false
+  terraform-apply-role:
+    description: "The AWS role to be used to apply Terraform."
+    required: false
   terraform-state-role:
     description: "The AWS role to be used to retrieve the planfile from AWS."
     required: false
@@ -165,22 +168,13 @@ runs:
       with:
         version: v4.4.1
 
-    - name: Configure State AWS Credentials
-      if: ${{ inputs.mode != 'triage' }}
+    - name: Configure Apply AWS Credentials
+      if: ${{ fromJSON(steps.settings.outputs.actions_enabled) }}
       uses: aws-actions/configure-aws-credentials@v2.2.0
       with:
         aws-region: ${{ inputs.aws-region }}
-        role-to-assume: ${{ inputs.terraform-state-role }}
-        role-session-name: "atmos-terraform-state-gitops"
-        mask-aws-account-id: "no"
-
-    - name: Configure State AWS Credentials
-      if: ${{ inputs.mode != 'triage' }}
-      uses: aws-actions/configure-aws-credentials@v2.2.0
-      with:
-        aws-region: ${{ inputs.aws-region }}
-        role-to-assume: ${{ inputs.terraform-state-role }}
-        role-session-name: "atmos-terraform-state-gitops"
+        role-to-assume: ${{ inputs.terraform-apply-role }}
+        role-session-name: "atmos-terraform-apply-gitops"
         mask-aws-account-id: "no"
 
     - name: Atmos Setup Workspace
