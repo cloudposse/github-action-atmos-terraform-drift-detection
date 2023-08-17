@@ -165,7 +165,6 @@ runs:
         version: v4.4.1
 
     - name: Atmos Setup Workspace
-      if: ${{ fromJSON(steps.settings.outputs.actions_enabled) }}
       id: atmos-init
       shell: bash
       run: |
