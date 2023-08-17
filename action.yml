@@ -146,6 +146,12 @@ runs:
       with:
         node-version: 16
 
+    - uses: cloudposse/github-action-setup-atmos@v1
+      with:
+        atmos-version: ${{ inputs.atmos-version }}
+        token: ${{ inputs.token }}
+        install-wrapper: false
+
     - name: Update path for tfcmt
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
@@ -157,6 +163,13 @@ runs:
       uses: shmokmt/actions-setup-tfcmt@v2
       with:
         version: v4.4.1
+
+    - name: Atmos Setup Workspace
+      if: ${{ fromJSON(steps.settings.outputs.actions_enabled) }}
+      id: atmos-init
+      shell: bash
+      run: |
+        ATMOS_BASE_PATH=$GITHUB_WORKSPACE atmos terraform workspace ${{ inputs.component }} -s ${{ inputs.stack }}
 
     - name: Render Summary
       if: ${{ inputs.mode != 'triage' }}
