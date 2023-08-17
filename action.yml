@@ -169,7 +169,7 @@ runs:
         version: v4.4.1
 
     - name: Configure Apply AWS Credentials
-      if: ${{ fromJSON(steps.settings.outputs.actions_enabled) }}
+      if: ${{ inputs.mode != 'triage' }}
       uses: aws-actions/configure-aws-credentials@v2.2.0
       with:
         aws-region: ${{ inputs.aws-region }}
