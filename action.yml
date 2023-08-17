@@ -204,6 +204,60 @@ runs:
         cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile" "${{ steps.variables.outputs.plan_file_name }}"
         cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.lockfile" "${{ inputs.component-path }}/.terraform.lock.hcl"
 
+    - name: Configure State AWS Credentials
+      if: ${{ inputs.mode != 'triage' }}
+      uses: aws-actions/configure-aws-credentials@v2.2.0
+      with:
+        aws-region: ${{ inputs.aws-region }}
+        role-to-assume: ${{ inputs.terraform-state-role }}
+        role-session-name: "atmos-terraform-state-gitops"
+        mask-aws-account-id: "no"
+
+    - name: Taint Plan
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: taintPlan
+        planPath: ${{ steps.variables.outputs.plan_file_name }}
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Taint Lock File
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: taintPlan
+        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Store Plan
+      if: ${{ inputs.mode != 'triage' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      id: store-plan
+      with:
+        action: storePlan
+        planPath: ${{ steps.variables.outputs.plan_file_name }}
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Store Lockfile
+      if: ${{ inputs.mode != 'triage' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: storePlan
+        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
+        component: ${{ inputs.component }}
+        stack: "${{ inputs.stack }}-lockfile"
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
     - name: Prepare Issue Summary
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
@@ -250,60 +304,6 @@ runs:
 
           console.log(`Created new issue with number: ${issueNumber}`);
 
-    - name: Configure State AWS Credentials
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: aws-actions/configure-aws-credentials@v2.2.0
-      with:
-        aws-region: ${{ inputs.aws-region }}
-        role-to-assume: ${{ inputs.terraform-state-role }}
-        role-session-name: "atmos-terraform-state-gitops"
-        mask-aws-account-id: "no"
-
-    - name: Taint Plan
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: taintPlan
-        planPath: ${{ steps.variables.outputs.plan_file_name }}
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Taint Lock File
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: taintPlan
-        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Store Plan
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      id: store-plan
-      with:
-        action: storePlan
-        planPath: ${{ steps.variables.outputs.plan_file_name }}
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Store Lockfile
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: storePlan
-        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
-        component: ${{ inputs.component }}
-        stack: "${{ inputs.stack }}-lockfile"
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
     - name: Update Issue
       if: ${{ inputs.mode == 'update_issue' }}
       uses: actions/github-script@v6
@@ -328,7 +328,7 @@ runs:
 
           console.log(`Updated issue: ${issueNumber}`);
 
-    - name: Update Issue
+    - name: Fail
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
