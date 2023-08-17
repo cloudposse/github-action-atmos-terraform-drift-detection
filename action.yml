@@ -147,6 +147,7 @@ runs:
         node-version: 16
 
     - uses: cloudposse/github-action-setup-atmos@v1
+      if: ${{ inputs.mode != 'triage' }}
       with:
         atmos-version: ${{ inputs.atmos-version }}
         token: ${{ inputs.token }}
@@ -165,6 +166,7 @@ runs:
         version: v4.4.1
 
     - name: Atmos Setup Workspace
+      if: ${{ inputs.mode != 'triage' }}
       id: atmos-init
       shell: bash
       run: |
