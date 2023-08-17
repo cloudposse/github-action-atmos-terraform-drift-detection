@@ -91,7 +91,7 @@ templates:
     <details><summary>Metadata</summary>
 
     ```json
-    {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}"}
+    {"component": "{{.Vars.component}}", "stack": "{{.Vars.stack}}", "componentPath": "{{.Vars.componentPath}}", "commitSHA": "{{.Vars.commitSHA}}"}
     ```
     </details>
 terraform:

@@ -211,11 +211,51 @@ runs:
         ls -l
         cat "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md"
 
-    - name: Create Issue
+    - name: Prepare Issue Summary
       if: ${{ inputs.mode == 'create_issue' }}
       shell: bash
       run: |
-        echo "${{ inputs.stack }}-${{ inputs.component }}"
+        cd ${{ inputs.component-path }}
+
+        tfcmt \
+          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          -owner "${{ github.repository_owner }}" \
+          -repo "${{ github.event.repository.name }}" \
+          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
+          -var "stack:${{ inputs.stack }}" \
+          -var "component:${{ inputs.component }}" \
+          -var "componentPath:${{ inputs.component-path }}" \
+          -var "commitSHA:${{ github.sha }}" \
+          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
+          --output issue-description.md \
+          plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
+
+    - name: Create Issue
+      uses: actions/github-script@v6
+      if: ${{ inputs.mode == 'create_issue' }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const title = `Drift Detected in \`${{ inputs.stack }}}-${{ inputs.component }}\``;
+          const body = fs.readFileSync(`issue-summary.md`, 'utf8');
+          const issueLabels = "${{ inputs.issue-labels }}"
+          const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+
+          const newIssue = await github.rest.issues.create({
+            owner: owner,
+            repo: repo,
+            title: title,
+            body: body,
+            labels: labels
+          });
+
+          const issueNumber = newIssue.data.number;
+
+          console.log(`Created new issue with number: ${issueNumber}`);
 
     - name: Update Issue
       if: ${{ inputs.mode == 'update_issue' }}
