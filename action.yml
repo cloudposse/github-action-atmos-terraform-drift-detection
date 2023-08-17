@@ -120,7 +120,8 @@ runs:
               component: component,
               stack: stack,
               componentPath: componentPath,
-              stackSlug: stackSlug
+              stackSlug: stackSlug,
+              issueNumber: -1
             }
 
             const issues = await github.rest.search.issuesAndPullRequests({
@@ -128,6 +129,7 @@ runs:
             });
 
             if (issues.data.total_count > 0) {
+              matrixComponent.issueNumber = issues.data.items[0].number
               componentsWithIssues.include.push(matrixComponent);
             } else {
               componentsWithoutIssues.include.push(matrixComponent);
@@ -184,35 +186,26 @@ runs:
       run: |
         ATMOS_BASE_PATH=$GITHUB_WORKSPACE atmos terraform workspace ${{ inputs.component }} -s ${{ inputs.stack }}
 
-    - name: Render Summary
+    - name: Variables
+      if: ${{ inputs.mode != 'triage' }}
+      id: variables
+      shell: bash
+      run: |
+        STACK_NAME=$(echo "${{ inputs.stack }}" | sed 's#/#_#g')
+        COMPONENT_NAME=$(echo "${{ inputs.component }}" | sed 's#/#_#g')
+        PLAN_FILE_NAME="$STACK_NAME-$COMPONENT_NAME-${{ github.sha }}.planfile"
+
+        echo "plan_file_name=$PLAN_FILE_NAME" >> $GITHUB_OUTPUT
+
+    - name: Prepare plan and lock files
       if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
-        cd ${{ inputs.component-path }}
-        
-        cp "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.lockfile" .terraform.lock.hcl
-
-        tfcmt \
-          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
-          -owner "${{ github.repository_owner }}" \
-          -repo "${{ github.event.repository.name }}" \
-          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
-          -var "stack:${{ inputs.stack }}" \
-          -var "component:${{ inputs.component }}" \
-          -var "componentPath:${{ inputs.component-path }}" \
-          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
-          --output "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md" \
-          plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
-
-    - name: Update Issue
-      if: ${{ inputs.mode != 'triage' }}
-      shell: bash
-      run: |
-        ls -l
-        cat "$GITHUB_WORKSPACE/summary-${{ inputs.stack }}-${{ inputs.component }}.md"
+        cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile" "${{ steps.variables.outputs.plan_file_name }}"
+        cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.lockfile" "${{ inputs.component-path }}/.terraform.lock.hcl"
 
     - name: Prepare Issue Summary
-      if: ${{ inputs.mode == 'create_issue' }}
+      if: ${{ inputs.mode != 'triage' }}
       shell: bash
       run: |
         cd ${{ inputs.component-path }}
@@ -228,7 +221,7 @@ runs:
           -var "commitSHA:${{ github.sha }}" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
           --output "$GITHUB_WORKSPACE/issue-description.md" \
-          plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
+          plan -- terraform show "$GITHUB_WORKSPACE/${{ steps.variables.outputs.plan_file_name }}"
 
     - name: Create Issue
       uses: actions/github-script@v6
@@ -257,11 +250,82 @@ runs:
 
           console.log(`Created new issue with number: ${issueNumber}`);
 
-    - name: Update Issue
+    - name: Configure State AWS Credentials
       if: ${{ inputs.mode == 'update_issue' }}
-      shell: bash
-      run: |
-        echo "${{ inputs.stack }}-${{ inputs.component }}"
+      uses: aws-actions/configure-aws-credentials@v2.2.0
+      with:
+        aws-region: ${{ inputs.aws-region }}
+        role-to-assume: ${{ inputs.terraform-state-role }}
+        role-session-name: "atmos-terraform-state-gitops"
+        mask-aws-account-id: "no"
+
+    - name: Taint Plan
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: taintPlan
+        planPath: ${{ steps.variables.outputs.plan_file_name }}
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Taint Lock File
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: taintPlan
+        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Store Plan
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      id: store-plan
+      with:
+        action: storePlan
+        planPath: ${{ steps.variables.outputs.plan_file_name }}
+        component: ${{ inputs.component }}
+        stack: ${{ inputs.stack }}
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Store Lockfile
+      if: ${{ inputs.mode == 'update_issue' }}
+      uses: cloudposse/github-action-terraform-plan-storage@v1
+      with:
+        action: storePlan
+        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
+        component: ${{ inputs.component }}
+        stack: "${{ inputs.stack }}-lockfile"
+        tableName: ${{ inputs.terraform-state-table }}
+        bucketName: ${{ inputs.terraform-state-bucket }}
+
+    - name: Update Issue
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+
+          const owner = "${{ github.repository_owner }}";
+          const repo = "${{ github.event.repository.name }}";
+          const body = fs.readFileSync(`issue-description.md`, 'utf8');
+          const issueNumber = issues.data.items[0].number;
+
+          console.log(`Found issue: ${issueNumber}`);
+
+          await github.rest.issues.update({
+            owner: owner,
+            repo: repo,
+            issue_number: issueNumber,
+            body: body
+          });
+
+          console.log(`Updated issue: ${issueNumber}`);
 
     - name: Update Issue
       if: ${{ inputs.mode != 'triage' }}
