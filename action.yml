@@ -227,7 +227,7 @@ runs:
           -var "componentPath:${{ inputs.component-path }}" \
           -var "commitSHA:${{ github.sha }}" \
           --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
-          --output issue-description.md \
+          --output "$GITHUB_WORKSPACE/issue-description.md" \
           plan -- terraform show "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile"
 
     - name: Create Issue
