@@ -218,7 +218,7 @@ runs:
         cd ${{ inputs.component-path }}
 
         tfcmt \
-          --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
+          --config "${{ github.action_path }}/config/github_issue_description.yaml" \
           -owner "${{ github.repository_owner }}" \
           -repo "${{ github.event.repository.name }}" \
           -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
@@ -240,7 +240,7 @@ runs:
 
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-          const title = `Drift Detected in \`${{ inputs.stack }}}-${{ inputs.component }}\``;
+          const title = `Drift Detected in \`${{ inputs.stack }}-${{ inputs.component }}\``;
           const body = fs.readFileSync(`issue-description.md`, 'utf8');
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
