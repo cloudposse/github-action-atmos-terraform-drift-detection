@@ -305,6 +305,7 @@ runs:
         bucketName: ${{ inputs.terraform-state-bucket }}
 
     - name: Update Issue
+      if: ${{ inputs.mode == 'update_issue' }}
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
