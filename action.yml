@@ -163,9 +163,8 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.component-path }}
-
-        pwd
-        ls -l $GITHUB_WORKSPACE
+        
+        cp "$GITHUB_WORKSPACE/${{ inputs.stack }}-${{ inputs.component }}.terraform.lockfile" .terraform.lock.hcl
 
         tfcmt \
           --config "${{ github.action_path }}/config/atmos_github_issue.yaml" \
