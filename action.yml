@@ -92,12 +92,12 @@ runs:
           for (let i = 0; i < normalizedSlugs.length; i++) {
             const normalizedSlug = normalizedSlugs[i];
             const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
-            const issueTitle = `Drift Detected in \`${stack}-${component}\``;
-            const issueDescription = fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'));
             const stack = metadata.stack;
             const component = metadata.component;
             const stackSlug = `${stack}-${component}`
             const componentPath = metadata.componentPath;
+            const issueTitle = `Drift Detected in \`${stack}-${component}\``;
+            const issueDescription = fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'));
             const matrixComponent = {
               component: component,
               stack: stack,
