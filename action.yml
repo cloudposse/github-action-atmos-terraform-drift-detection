@@ -6,7 +6,7 @@ branding:
   color: 'white'
 inputs:
   mode:
-    description: "Drift detection mode. One of ['triage','create_issue','update_issue']"
+    description: "Drift detection mode. One of ['triage','create-gh-issue','update-gh-issue']"
     required: true
   issue-labels:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
@@ -16,6 +16,15 @@ inputs:
     description: "Number of new issues to create at once. Default: 10"
     default: '10'
     required: false
+  issue-number:
+    description: "Issue number"
+    required: false
+  issue-title:
+    description: "Issue title"
+    required: false
+  issue-description:
+    description: "Issue description"
+    required: false
   component:
     description: "The name of the component to plan."
     required: false
@@ -24,40 +33,6 @@ inputs:
     required: false
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
-    required: false
-  issue-number:
-    description: "Issue number"
-    required: false
-  terraform-plan-role:
-    description: "The AWS role to be used to plan Terraform."
-    required: false
-  terraform-apply-role:
-    description: "The AWS role to be used to apply Terraform."
-    required: false
-  terraform-state-role:
-    description: "The AWS role to be used to retrieve the planfile from AWS."
-    required: false
-  terraform-state-bucket:
-    description: "The S3 Bucket where the planfiles are stored."
-    required: false
-  terraform-state-table:
-    description: "The DynamoDB table where planfile metadata is stored."
-    required: true
-  aws-region:
-    description: "AWS region for assuming identity."
-    required: false
-    default: "us-east-1"
-  atmos-version:
-    description: "Atmos version to use for vendoring. Default 'latest'"
-    required: false
-    default: 'latest'
-  atmos-config-path:
-    description: "The path to the atmos.yaml file"
-    required: false
-    default: atmos.yaml
-  terraform-version:
-    description: 'The version of Terraform CLI to install. Instead of full version string you can also specify constraint string starting with "<" (for example `<1.13.0`) to install the latest version satisfying the constraint. A value of `latest` will install the latest version of Terraform CLI. Defaults to `latest`.'
-    default: 'latest'
     required: false
   debug:
     description: "Enable action debug mode. Default: false"
@@ -80,18 +55,21 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout
-      if: ${{ inputs.mode != 'triage' }}
-      uses: actions/checkout@v3
+    - name: Define Job Control State Variables
+      shell: bash
+      run: |
+        echo "DEBUG_ENABLED=${{ inputs.debug }}" >> $GITHUB_ENV
+        echo "EXECUTION_MODE=${{ inputs.mode }}" >> $GITHUB_ENV
 
     - name: Download Artifacts
+      if: env.EXECUTION_MODE == 'triage'
       uses: actions/download-artifact@v3
       with:
         name: plan-artifacts
 
     - name: Lookup Issues
+      if: env.EXECUTION_MODE == 'triage'
       id: lookup-issues
-      if: ${{ inputs.mode == 'triage' }}
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
@@ -114,21 +92,24 @@ runs:
           for (let i = 0; i < normalizedSlugs.length; i++) {
             const normalizedSlug = normalizedSlugs[i];
             const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
+            const issueTitle = `Drift Detected in \`${stack}-${component}\``;
+            const issueDescription = fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'));
             const stack = metadata.stack;
             const component = metadata.component;
             const stackSlug = `${stack}-${component}`
             const componentPath = metadata.componentPath;
-            const title = `Drift Detected in \`${stack}-${component}\``;
             const matrixComponent = {
               component: component,
               stack: stack,
               componentPath: componentPath,
               stackSlug: stackSlug,
+              issueTitle: issueTitle,
+              issueDescription: issueDescription,
               issueNumber: -1
             }
 
             const issues = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue state:open in:title ${title}`
+              q: `repo:${owner}/${repo} is:issue state:open in:title ${issueTitle}`
             });
 
             if (issues.data.total_count > 0) {
@@ -142,164 +123,24 @@ runs:
           core.setOutput('components-with-issues', JSON.stringify(componentsWithIssues));
           core.setOutput('components-without-issues', JSON.stringify(componentsWithoutIssues));
 
-    - name: Install terraform
-      if: ${{ inputs.mode != 'triage' }}
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: ${{ inputs.terraform-version }}
-
-    - name: Setup Node
-      if: ${{ inputs.mode != 'triage' }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-
-    - uses: cloudposse/github-action-setup-atmos@v1
-      if: ${{ inputs.mode != 'triage' }}
-      with:
-        atmos-version: ${{ inputs.atmos-version }}
-        token: ${{ inputs.token }}
-        install-wrapper: false
-
-    - name: Update path for tfcmt
-      if: ${{ inputs.mode != 'triage' }}
-      shell: bash
-      run: |
-        echo "/usr/local/bin" >> $GITHUB_PATH
-
-    - name: Setup tfcmt
-      if: ${{ inputs.mode != 'triage' }}
-      uses: shmokmt/actions-setup-tfcmt@v2
-      with:
-        version: v4.4.1
-
-    - name: Configure Apply AWS Credentials
-      if: ${{ inputs.mode != 'triage' }}
-      uses: aws-actions/configure-aws-credentials@v2.2.0
-      with:
-        aws-region: ${{ inputs.aws-region }}
-        role-to-assume: ${{ inputs.terraform-apply-role }}
-        role-session-name: "atmos-terraform-apply-gitops"
-        mask-aws-account-id: "no"
-
-    - name: Atmos Setup Workspace
-      if: ${{ inputs.mode != 'triage' }}
-      id: atmos-init
-      shell: bash
-      run: |
-        ATMOS_BASE_PATH=$GITHUB_WORKSPACE atmos terraform workspace ${{ inputs.component }} -s ${{ inputs.stack }}
-
-    - name: Variables
-      if: ${{ inputs.mode != 'triage' }}
-      id: variables
-      shell: bash
-      run: |
-        STACK_NAME=$(echo "${{ inputs.stack }}" | sed 's#/#_#g')
-        COMPONENT_NAME=$(echo "${{ inputs.component }}" | sed 's#/#_#g')
-        PLAN_FILE_NAME="$STACK_NAME-$COMPONENT_NAME-${{ github.sha }}.planfile"
-
-        echo "plan_file_name=$PLAN_FILE_NAME" >> $GITHUB_OUTPUT
-
-    - name: Prepare plan and lock files
-      if: ${{ inputs.mode != 'triage' }}
-      shell: bash
-      run: |
-        cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.planfile" "${{ steps.variables.outputs.plan_file_name }}"
-        cp "${{ inputs.stack }}-${{ inputs.component }}.terraform.lockfile" "${{ inputs.component-path }}/.terraform.lock.hcl"
-
-    - name: Configure State AWS Credentials
-      if: ${{ inputs.mode != 'triage' }}
-      uses: aws-actions/configure-aws-credentials@v2.2.0
-      with:
-        aws-region: ${{ inputs.aws-region }}
-        role-to-assume: ${{ inputs.terraform-state-role }}
-        role-session-name: "atmos-terraform-state-gitops"
-        mask-aws-account-id: "no"
-
-    - name: Taint Plan
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: taintPlan
-        planPath: ${{ steps.variables.outputs.plan_file_name }}
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Taint Lock File
-      if: ${{ inputs.mode == 'update_issue' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: taintPlan
-        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Store Plan
-      if: ${{ inputs.mode != 'triage' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      id: store-plan
-      with:
-        action: storePlan
-        planPath: ${{ steps.variables.outputs.plan_file_name }}
-        component: ${{ inputs.component }}
-        stack: ${{ inputs.stack }}
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Store Lockfile
-      if: ${{ inputs.mode != 'triage' }}
-      uses: cloudposse/github-action-terraform-plan-storage@v1
-      with:
-        action: storePlan
-        planPath: "${{ inputs.component-path}}/.terraform.lock.hcl"
-        component: ${{ inputs.component }}
-        stack: "${{ inputs.stack }}-lockfile"
-        tableName: ${{ inputs.terraform-state-table }}
-        bucketName: ${{ inputs.terraform-state-bucket }}
-
-    - name: Prepare Issue Summary
-      if: ${{ inputs.mode != 'triage' }}
-      shell: bash
-      run: |
-        cd ${{ inputs.component-path }}
-
-        tfcmt \
-          --config "${{ github.action_path }}/config/github_issue_description.yaml" \
-          -owner "${{ github.repository_owner }}" \
-          -repo "${{ github.event.repository.name }}" \
-          -var "target:${{ inputs.stack }}-${{ inputs.component }}" \
-          -var "stack:${{ inputs.stack }}" \
-          -var "component:${{ inputs.component }}" \
-          -var "componentPath:${{ inputs.component-path }}" \
-          -var "commitSHA:${{ github.sha }}" \
-          --log-level $([[ "${{ inputs.debug }}" == "true" ]] && echo "DEBUG" || echo "INFO") \
-          --output "$GITHUB_WORKSPACE/issue-description.md" \
-          plan -- terraform show "$GITHUB_WORKSPACE/${{ steps.variables.outputs.plan_file_name }}"
-
     - name: Create Issue
       uses: actions/github-script@v6
-      if: ${{ inputs.mode == 'create_issue' }}
+      if: env.EXECUTION_MODE == 'create-gh-issue'
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const fs = require('fs');
-
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-          const title = `Drift Detected in \`${{ inputs.stack }}-${{ inputs.component }}\``;
-          const body = fs.readFileSync(`issue-description.md`, 'utf8');
+          const issueTitle = ${{ inputs.issue-title }};
+          const issueDescription = ${{ inputs.issue-description }};
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
           const newIssue = await github.rest.issues.create({
             owner: owner,
             repo: repo,
-            title: title,
-            body: body,
+            title: issueTitle,
+            body: issueDescription,
             labels: labels
           });
 
@@ -308,17 +149,15 @@ runs:
           console.log(`Created new issue with number: ${issueNumber}`);
 
     - name: Update Issue
-      if: ${{ inputs.mode == 'update_issue' }}
+      if: env.EXECUTION_MODE == 'update-gh-issue'
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const fs = require('fs');
-
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-          const body = fs.readFileSync(`issue-description.md`, 'utf8');
           const issueNumber = parseInt("${{ inputs.issue-number }}", 10);
+          const issueDescription = ${{ inputs.issue-description }};
 
           console.log(`Found issue: ${issueNumber}`);
 
@@ -326,13 +165,13 @@ runs:
             owner: owner,
             repo: repo,
             issue_number: issueNumber,
-            body: body
+            body: issueDescription
           });
 
           console.log(`Updated issue: ${issueNumber}`);
 
     - name: Fail
-      if: ${{ inputs.mode != 'triage' }}
+      if: env.EXECUTION_MODE != 'triage'
       shell: bash
       run: |
         # failing intentionally
