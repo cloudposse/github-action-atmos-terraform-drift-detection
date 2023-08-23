@@ -120,7 +120,7 @@ runs:
           const path = require('path');
 
           const maxIssues = parseInt("${{ inputs.max-issues }}");
-          const issuesMap = JSON.parse("${{ steps.drift-detection-issues.outputs.issues }}", 'utf8');
+          const issuesMap = JSON.parse(`${{ steps.drift-detection-issues.outputs.issues }}`, 'utf8');
           const dirPath = '.';
           const files = fs.readdirSync(dirPath);
           const owner = "${{ github.repository_owner }}";
