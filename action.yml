@@ -72,6 +72,7 @@ runs:
       id: drift-detection-issues
       uses: actions/github-script@v6
       with:
+        github-token: ${{ inputs.token }}
         script: |
           const repository = context.repo;
 
