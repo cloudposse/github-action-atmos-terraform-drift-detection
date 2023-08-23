@@ -97,7 +97,7 @@ runs:
             const stackSlug = `${stack}-${component}`
             const componentPath = metadata.componentPath;
             const issueTitle = `Drift Detected in \`${stack}-${component}\``;
-            const issueDescription = fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'));
+            const issueDescription = Buffer.from(fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'))).toString('base64');
             const matrixComponent = {
               component: component,
               stack: stack,
@@ -137,8 +137,9 @@ runs:
         script: |
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
-          const issueTitle = ${{ inputs.issue-title }};
-          const issueDescription = ${{ inputs.issue-description }};
+          const issueTitle = "${{ inputs.issue-title }}";
+          const issueDescriptionEncoded = "${{ inputs.issue-description }}";
+          const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
@@ -163,7 +164,8 @@ runs:
           const owner = "${{ github.repository_owner }}";
           const repo = "${{ github.event.repository.name }}";
           const issueNumber = parseInt("${{ inputs.issue-number }}", 10);
-          const issueDescription = ${{ inputs.issue-description }};
+          const issueDescriptionEncoded = "${{ inputs.issue-description }}";
+          const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
 
           console.log(`Found issue: ${issueNumber}`);
 
