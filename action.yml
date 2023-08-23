@@ -120,7 +120,7 @@ runs:
           const path = require('path');
 
           const maxIssues = parseInt(`${{ inputs.max-issues }}`);
-          const issuesMap = JSON.parse(`${{ steps.drift-detection-issues.outputs.issues }}`, 'utf8');
+          const issuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.issues }}', 'utf8');
           const dirPath = '.';
           const files = fs.readdirSync(dirPath);
           const owner = "${{ github.repository_owner }}";
@@ -133,7 +133,39 @@ runs:
           const componentsWithIssues = { include: [] };
           const componentsWithoutIssues = { include: [] };
 
+          let numDriftDetectionIssues = Object.keys(issuesMap).length;
 
+          for (let i = 0; i < normalizedSlugs.length; i++) {
+            const normalizedSlug = normalizedSlugs[i];
+            const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
+            const stack = metadata.stack;
+            const component = metadata.component;
+            const stackSlug = `${stack}-${component}`
+            const componentPath = metadata.componentPath;
+            const issueTitle = `Drift Detected in \`${stack}-${component}\``;
+            const issueDescription = Buffer.from(fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'))).toString('base64');
+            const matrixComponent = {
+              component: component,
+              stack: stack,
+              componentPath: componentPath,
+              stackSlug: stackSlug,
+              issueTitle: issueTitle,
+              issueDescription: issueDescription,
+              issueNumber: -1
+            }
+
+            if (issuesMap.hasOwnProperty(issueTitle)) {
+              matrixComponent.issueNumber = issuesMap[issueTitle];
+              componentsWithIssues.include.push(matrixComponent);
+            } else {
+              if (numDriftDetectionIssues >= maxIssues) {
+                console.log(`Reached maximum of open drift detection issues. Skipping issue creation for ${issueTitle}`);
+              } else {
+                numDriftDetectionIssues++;
+                componentsWithoutIssues.include.push(matrixComponent);
+              }
+            }
+          }
 
           const componentsWithIssuesSerialized = JSON.stringify(componentsWithIssues);
           const componentsWithoutIssuesSerialized = JSON.stringify(componentsWithoutIssues);
