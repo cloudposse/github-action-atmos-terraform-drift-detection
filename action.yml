@@ -133,7 +133,7 @@ runs:
           const componentsWithIssues = { include: [] };
           const componentsWithoutIssues = { include: [] };
 
-          let numDriftDetectionIssues = Object.keys(myMap).length;
+          let numDriftDetectionIssues = Object.keys(issuesMap).length;
 
           for (let i = 0; i < normalizedSlugs.length; i++) {
             const normalizedSlug = normalizedSlugs[i];
