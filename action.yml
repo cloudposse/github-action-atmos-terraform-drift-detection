@@ -120,14 +120,14 @@ runs:
             }
           }
 
-          const componentsWithIssues = JSON.stringify(componentsWithIssues);
-          const componentsWithoutIssues = JSON.stringify(componentsWithoutIssues);
+          const componentsWithIssuesSerialized = JSON.stringify(componentsWithIssues);
+          const componentsWithoutIssuesSerialized = JSON.stringify(componentsWithoutIssues);
 
-          console.log(`componentsWithIssues: ${componentsWithIssues}`);
-          console.log(`componentsWithoutIssues: ${componentsWithoutIssues}`);
+          console.log(`components-with-issues: ${componentsWithIssuesSerialized}`);
+          console.log(`components-without-issues: ${componentsWithoutIssuesSerialized}`);
 
-          core.setOutput('components-with-issues', componentsWithIssues);
-          core.setOutput('components-without-issues', componentsWithoutIssues);
+          core.setOutput('components-with-issues', componentsWithIssuesSerialized);
+          core.setOutput('components-without-issues', componentsWithoutIssuesSerialized);
 
     - name: Create Issue
       uses: actions/github-script@v6
