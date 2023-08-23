@@ -12,8 +12,8 @@ inputs:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
     default: 'drift'
     required: false
-  max-new-issues-to-create:
-    description: "Number of new issues to create at once. Default: 10"
+  max-issues:
+    description: "Number of open drift detection issues. Default: 10"
     default: '10'
     required: false
   issue-number:
@@ -67,6 +67,47 @@ runs:
       with:
         name: plan-artifacts
 
+    - name: Get Drift Detection Issues
+      if: env.EXECUTION_MODE == 'triage'
+      id: drift-detection-issues
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const repository = context.repo;
+
+          let per_page = 100; // Max allowed value
+          let page = 1;
+          let issueTitleToNumberMap = {};
+          let isContinue = true;
+
+          while (isContinue) {
+            const response = await github.rest.issues.listForRepo({
+              ...repository,
+              state: 'open',
+              per_page,
+              page
+            });
+            
+            if (response.data.length === 0) {
+              isContinue = false;
+            } else {
+              const driftDetectionIssues = response.data
+                .filter(issue => issue.title.startsWith('Drift Detected in'));
+              
+              for (let issue of driftDetectionIssues) {
+                issueTitleToNumberMap[issue.title] = issue.number;
+              }
+
+              page++;
+            }
+          }
+
+          const issuesSerialized = JSON.stringify(issueTitleToNumberMap);
+
+          console.log(`Found Issues: ${issuesSerialized}`);
+
+          core.setOutput("issues", issuesSerialized);
+
     - name: Lookup Issues
       if: env.EXECUTION_MODE == 'triage'
       id: lookup-issues
@@ -77,6 +118,8 @@ runs:
           const fs = require('fs');
           const path = require('path');
 
+          const maxIssues = parseInt("${{ inputs.max-issues }}");
+          const issuesMap = JSON.parse("${{ steps.drift-detection-issues.outputs.issues }}", 'utf8');
           const dirPath = '.';
           const files = fs.readdirSync(dirPath);
           const owner = "${{ github.repository_owner }}";
@@ -88,6 +131,8 @@ runs:
 
           const componentsWithIssues = { include: [] };
           const componentsWithoutIssues = { include: [] };
+
+          let numDriftDetectionIssues = Object.keys(myMap).length;
 
           for (let i = 0; i < normalizedSlugs.length; i++) {
             const normalizedSlug = normalizedSlugs[i];
@@ -108,15 +153,16 @@ runs:
               issueNumber: -1
             }
 
-            const issues = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue state:open in:title ${issueTitle}`
-            });
-
-            if (issues.data.total_count > 0) {
-              matrixComponent.issueNumber = issues.data.items[0].number
+            if (issuesMap.hasOwnProperty(issueTitle)) {
+              matrixComponent.issueNumber = issuesMap[issueTitle];
               componentsWithIssues.include.push(matrixComponent);
             } else {
-              componentsWithoutIssues.include.push(matrixComponent);
+              if (numDriftDetectionIssues >= maxIssues) {
+                console.log(`Reached maximum of open drift detection issues. Skipping issue creation for ${issueTitle}`);
+              } else {
+                numDriftDetectionIssues++;
+                componentsWithoutIssues.include.push(matrixComponent);
+              }
             }
           }
 
@@ -135,8 +181,7 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const owner = "${{ github.repository_owner }}";
-          const repo = "${{ github.event.repository.name }}";
+          const repository = context.repo;
           const issueTitle = "${{ inputs.issue-title }}";
           const issueDescriptionEncoded = "${{ inputs.issue-description }}";
           const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
@@ -144,8 +189,7 @@ runs:
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
           const newIssue = await github.rest.issues.create({
-            owner: owner,
-            repo: repo,
+              ...repository,
             title: issueTitle,
             body: issueDescription,
             labels: labels
@@ -161,8 +205,7 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const owner = "${{ github.repository_owner }}";
-          const repo = "${{ github.event.repository.name }}";
+          const repository = context.repo;
           const issueNumber = parseInt("${{ inputs.issue-number }}", 10);
           const issueDescriptionEncoded = "${{ inputs.issue-description }}";
           const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
@@ -170,8 +213,7 @@ runs:
           console.log(`Found issue: ${issueNumber}`);
 
           await github.rest.issues.update({
-            owner: owner,
-            repo: repo,
+              ...repository,
             issue_number: issueNumber,
             body: issueDescription
           });
