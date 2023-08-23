@@ -177,11 +177,3 @@ runs:
           });
 
           console.log(`Updated issue: ${issueNumber}`);
-
-    - name: Fail
-      if: env.EXECUTION_MODE != 'triage'
-      shell: bash
-      run: |
-        # failing intentionally
-        # need for debugging
-        exit 1
