@@ -231,7 +231,7 @@ runs:
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
-          for (let i = 0; i < componentsToCreateIssue.length; i++) {
+          for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md');
