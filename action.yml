@@ -86,7 +86,7 @@ runs:
                 .filter(issue => issue.title.startsWith('Drift Detected in'));
               
               for (let issue of driftDetectionIssues) {
-                const metadata = getMetadataFromIssueBody(issue.data.body);
+                const metadata = getMetadataFromIssueBody(issue.body);
                 componentsToIssues[`${metadata.stack}-${metadata.component}`] = issue.number;
               }
 
