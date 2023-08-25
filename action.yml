@@ -150,10 +150,10 @@ runs:
           const componentsToCloseIssues = [];
 
           for (let slug of slugs) {
-            if (componentsToIssuesMap.has(slug)) {
+            if (componentsToIssuesMap.hasOwnProperty(slug)) {
               const issueNumber = componentsToIssuesMap.get(slug);
 
-              if (componentsToStateMap.has(slug)) {
+              if (componentsToStateMap.hasOwnProperty(slug)) {
                 const drifted = componentsToStateMap.get(slug);
 
                 if (drifted) {
