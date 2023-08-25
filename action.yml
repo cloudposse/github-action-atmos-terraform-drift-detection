@@ -265,7 +265,7 @@ runs:
 
           for (let i = 0; i < componentsToUpdateIssues.length; i++) {
             const slug = componentsToUpdateIssues[i];
-            const issueDescription = fs.readFileSync(`issue-description-${slug}.md', 'utf8');
+            const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             const issueNumber = componentsToIssuesMap[slug];
             
             await github.rest.issues.update({
