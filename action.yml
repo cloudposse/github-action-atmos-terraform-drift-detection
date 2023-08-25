@@ -151,10 +151,10 @@ runs:
 
           for (let slug of slugs) {
             if (componentsToIssuesMap.hasOwnProperty(slug)) {
-              const issueNumber = componentsToIssuesMap.get(slug);
+              const issueNumber = componentsToIssuesMap[slug];
 
               if (componentsToStateMap.hasOwnProperty(slug)) {
-                const drifted = componentsToStateMap.get(slug);
+                const drifted = componentsToStateMap[slug];
 
                 if (drifted) {
                   console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
@@ -168,7 +168,7 @@ runs:
                 componentsToCloseIssues.push(slug);
               }
             } else {
-              const drifted = componentsToStateMap.get(slug);
+              const drifted = componentsToStateMap[slug];
 
               if (drifted) {
                 console.log(`Component "${slug}" drifted. Issue ${issueNumber} needs to be created.`);
@@ -262,7 +262,7 @@ runs:
           for (let i = 0; i < componentsToUpdateIssues.length; i++) {
             const slug = componentsToUpdateIssues[i];
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md');
-            const issueNumber = componentsToIssuesMap.get(slug);
+            const issueNumber = componentsToIssuesMap[slug];
             
             await github.rest.issues.update({
                 ...repository,
