@@ -255,7 +255,7 @@ runs:
           users = users.concat(usersFromTeams);
           users = [...new Set(users)]; // get unique set
 
-          await octokit.rest.issues.addAssignees({
+          await github.rest.issues.addAssignees({
             ...repository,
             issue_number: issueNumber,
             assignees: users
