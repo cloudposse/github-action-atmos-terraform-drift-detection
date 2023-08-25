@@ -240,33 +240,25 @@ runs:
           const repo = repository.repo;
           const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
 
-          function getTeamMembers(organization, teams) {
-            const requests = await Promise.all(
-                teams.map((team) =>
-                    github.rest.teams.listMembersInOrg({
-                        organization,
-                        team_slug: team
-                    })
-                )
-            ).catch((err) => {
-                const newErr = new Error('Failed to retrieve team members');
-                newErr.stack += `\nCaused by: ${err.stack}`;
-                throw newErr;
-            });
-            return requests
-                .map((response) => response.data)
-                .reduce((all, cur) => all.concat(cur), [])
-                .map((user) => user.login);
+          let usersFromTeams = [];
+
+          for (let i = 0; i < teams.length; i++) {
+              const response = await github.rest.teams.listMembersInOrg({
+                  organization,
+                  team_slug: teams[i]
+              });
+
+              const usersForCurrentTeam = response.data.map(user => user.login);
+              usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
           }
 
-          const usersFromTeams = getTeamMembers(organization, teams);
           users = users.concat(usersFromTeams);
           users = [...new Set(users)]; // get unique set
 
           await octokit.rest.issues.addAssignees({
-              ...repository
-              issue_number: issueNumber,
-              assignees: users
+            ...repository
+            issue_number: issueNumber,
+            assignees: users
           });
 
     - name: Update Issue
