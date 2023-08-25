@@ -65,7 +65,7 @@ runs:
             const matched = body.match(regex);
 
             if (matched && matched[1]) {
-              return JSON.parse(matched[1], 'utf8');
+              return JSON.parse(matched[1]);
             } else {
               throw new Error("Invalid metadata in the issue description");
             }
