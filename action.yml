@@ -173,7 +173,7 @@ runs:
               const drifted = componentsToStateMap[slug];
 
               if (drifted) {
-                console.log(`Component "${slug}" drifted. Issue ${issueNumber} needs to be created.`);
+                console.log(`Component "${slug}" drifted. New issue has to be created.`);
                 componentsToCreateIssues.push(slug);
               } else {
                 console.log(`Component "${slug}" is not drifting. Skipping ...`);
