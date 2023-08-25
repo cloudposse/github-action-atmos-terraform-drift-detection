@@ -57,7 +57,7 @@ runs:
 
           let per_page = 100; // Max allowed value
           let page = 1;
-          let componentsToIssues = new Map();
+          let componentsToIssues = {};
           let isContinue = true;
 
           function getMetadataFromIssueBody(body) {
@@ -87,7 +87,7 @@ runs:
               
               for (let issue of driftDetectionIssues) {
                 const metadata = getMetadataFromIssueBody(issue.body);
-                componentsToIssues.set(`${metadata.stack}-${metadata.component}`, issue.number);
+                componentsToIssues[`${metadata.stack}-${metadata.component}`] = issue.number;
               }
 
               page++;
@@ -112,8 +112,8 @@ runs:
           const files = fs.readdirSync('.');
           const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
 
-          let componentsToState = new Map();
-          let componentsToMetadata = new Map();
+          let componentsToState = {};
+          let componentsToMetadata = {};
 
           for (let i = 0; i < metadataFiles.length; i++) {
             console.log(`Processing file ${metadataFiles[i]}`);
@@ -123,8 +123,8 @@ runs:
             const slug = `${metadata.stack}-${metadata.component}`;
             const drifted = metadata.drifted;
 
-            componentsToState.set(slug, drifted);
-            componentsToMetadata.set(slug, metadata);
+            componentsToState[slug] = drifted;
+            componentsToMetadata[slug] = metadata;
           }
 
           const componentsToStateSerialized = JSON.stringify(componentsToState);
