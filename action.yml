@@ -235,31 +235,6 @@ runs:
             return;
           }
 
-          const repository = context.repo;
-          const organization = repository.owner;
-          const repo = repository.repo;
-          const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
-
-          let usersFromTeams = [];
-
-          for (let i = 0; i < teams.length; i++) {
-              const response = await github.rest.teams.listMembersInOrg({
-                  organization,
-                  team_slug: teams[i]
-              });
-
-              const usersForCurrentTeam = response.data.map(user => user.login);
-              usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
-          }
-
-          users = users.concat(usersFromTeams);
-          users = [...new Set(users)]; // get unique set
-
-          await octokit.rest.issues.addAssignees({
-            ...repository
-            issue_number: issueNumber,
-            assignees: users
-          });
 
     - name: Update Issue
       if: env.ACTION == 'update-gh-issue'
