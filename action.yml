@@ -146,7 +146,6 @@ runs:
           const componentsToStateMap = JSON.parse('${{ steps.metadata-from-artifacts.outputs.components-to-state-map }}', 'utf8');
 
           let slugs = new Set([...Object.keys(componentsToIssuesMap), ...Object.keys(componentsToStateMap)]);
-          console.log(slugs);
 
           const componentsToCreateIssues = [];
           const componentsToUpdateIssues = [];
@@ -201,7 +200,6 @@ runs:
         script: |
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
-          metadata-from-artifacts
 
           const repository = context.repo;
 
