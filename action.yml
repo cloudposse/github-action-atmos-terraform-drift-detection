@@ -111,12 +111,14 @@ runs:
 
           const files = fs.readdirSync('.');
           const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
+
           let componentsToState = {};
           let componentsToMetadata = {};
 
           for (let i = 0; i < metadataFiles.length; i++) {
-            const metadataFile = metadataFiles[i];
-            const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
+            console.log(`Processing file ${metadataFiles[i]}`);
+
+            const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
             const slug = `${metadata.stack}-${metadata.component}`;
             const drifted = metadata.drifted;
