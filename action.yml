@@ -107,7 +107,6 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const fs = require('fs');
-          const path = require('path');
 
           const files = fs.readdirSync('.');
           const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
@@ -224,6 +223,8 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
+          const fs = require('fs');
+
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
 
           const repository = context.repo;
@@ -255,6 +256,8 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
+          const fs = require('fs');
+
           const componentsToUpdateIssues = JSON.parse('${{ steps.triage.outputs.components-to-update-issues }}', 'utf8');
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
 
