@@ -116,8 +116,7 @@ runs:
 
           for (let i = 0; i < metadataFiles.length; i++) {
             const metadataFile = metadataFiles[i];
-            const metadataFileContent = fs.readFileSync(metadataFile, 'utf8');
-            const metadata = JSON.parse(fileContent);
+            const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8'));
 
             const slug = `${metadata.stack}-${metadata.component}`;
             const drifted = metadata.drifted;
