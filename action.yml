@@ -13,7 +13,7 @@ inputs:
     default: 'drift'
     required: false
   max-opened-issues:
-    description: "Number of open drift detection issues. Default: 10"
+    description: "Number of open drift detection issues. Use `-1` to open unlimited number of issues. Default: 10"
     default: '10'
     required: false
   issue-number:
@@ -166,11 +166,11 @@ runs:
               matrixComponent.issueNumber = issuesMap[issueTitle];
               componentsWithIssues.include.push(matrixComponent);
             } else {
-              if (numDriftDetectionIssues >= maxIssues) {
-                console.log(`Reached maximum of open drift detection issues. Skipping issue creation for ${issueTitle}`);
-              } else {
+              if (maxIssues < 0 || numDriftDetectionIssues < maxIssues) {
                 numDriftDetectionIssues++;
                 componentsWithoutIssues.include.push(matrixComponent);
+              } else {
+                console.log(`Reached maximum of open drift detection issues. Skipping issue creation for ${issueTitle}`);
               }
             }
           }
