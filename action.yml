@@ -34,8 +34,12 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: false
-  assignees:
-    description: "Comma separated list of team names without the org prefix. Issue will be assigned to the team members.\n*Important Requirement*: if using the teams input parameter, you need to use a personal access token with read:org scope (the default GITHUB_TOKEN is not enough).\nThis is used only for action 'create-gh-issue'"
+  assignee-users:
+    description: "Comma-separated list of users to assign issues to. This is used only for action 'create-gh-issue'"
+    required: false
+    default: ""
+  assignee-teams:
+    description: "Comma-separated list of teams to assign issues to. This is used only for action 'create-gh-issue'"
     required: false
     default: ""
   debug:
@@ -207,13 +211,63 @@ runs:
 
           core.setOutput('issue-number', issueNumber);
 
-    - name: Assign Issue
-      uses: pozil/auto-assign-issue@v1
+    - name: Assign Issue to User and/or Teams
+      uses: actions/github-script@v6
       if: env.ACTION == 'create-gh-issue'
       with:
-        assignees: ${{ inputs.assignees }}
-        issueNumber: ${{ steps.create-issue.outputs.issue-number }}
-        repo-token: ${{ inputs.token }}
+        github-token: ${{ inputs.token }}
+        script: |
+          const assigneeTeams = "${{ inputs.assignee-teams }}";
+          const assigneeUsers = "${{ inputs.assignee-users }}";
+
+          function csvToArray(csvString) {
+            return csvString
+                .split(',')
+                .map((item) => item.trim())
+                .filter((item) => item !== '');
+          }
+
+          let teams = csvToArray(assigneeTeams);
+          let users = csvToArray(assigneeUsers);
+
+          if (teams.length === 0 && users.length === 0) {
+            console.log("No users to assign issue with. Skipping ...");
+            return;
+          }
+
+          const repository = context.repo;
+          const organization = repository.owner;
+          const repo = repository.repo;
+          const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
+
+          function getTeamMembers(organization, teams) {
+            const requests = await Promise.all(
+                teams.map((team) =>
+                    github.rest.teams.listMembersInOrg({
+                        organization,
+                        team_slug: team
+                    })
+                )
+            ).catch((err) => {
+                const newErr = new Error('Failed to retrieve team members');
+                newErr.stack += `\nCaused by: ${err.stack}`;
+                throw newErr;
+            });
+            return requests
+                .map((response) => response.data)
+                .reduce((all, cur) => all.concat(cur), [])
+                .map((user) => user.login);
+          }
+
+          const usersFromTeams = getTeamMembers(organization, teams);
+          users = users.concat(usersFromTeams);
+          users = [...new Set(users)]; // get unique set
+
+          await octokit.rest.issues.addAssignees({
+              ...repository
+              issue_number: issueNumber,
+              assignees: users
+          });
 
     - name: Update Issue
       if: env.ACTION == 'update-gh-issue'

@@ -5,7 +5,8 @@
 | Name | Description | Default | Required |
 |------|-------------|---------|----------|
 | action | Drift detection action. One of ['triage','create-gh-issue','update-gh-issue'] | N/A | true |
-| assignees | Comma separated list of team names without the org prefix. Issue will be assigned to the team members.<br>\*Important Requirement\*: if using the teams input parameter, you need to use a personal access token with read:org scope (the default GITHUB\_TOKEN is not enough).<br>This is used only for action 'create-gh-issue' |  | false |
+| assignee-teams | Comma-separated list of teams to assign issues to. This is used only for action 'create-gh-issue' |  | false |
+| assignee-users | Comma-separated list of users to assign issues to. This is used only for action 'create-gh-issue' |  | false |
 | component | The name of the component to plan. | N/A | false |
 | component-path | The path to the base component. Atmos defines this value as component\_path. | N/A | false |
 | debug | Enable action debug mode. Default: false | false | false |
