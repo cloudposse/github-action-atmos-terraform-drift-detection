@@ -39,7 +39,7 @@ inputs:
     required: false
     default: ""
   assignee-teams:
-    description: "Comma-separated list of teams to assign issues to. This is used only for action 'create-gh-issue'"
+    description: "Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only for action 'create-gh-issue'"
     required: false
     default: ""
   debug:

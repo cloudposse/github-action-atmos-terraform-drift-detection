@@ -195,7 +195,7 @@ jobs:
 | Name | Description | Default | Required |
 |------|-------------|---------|----------|
 | action | Drift detection action. One of ['triage','create-gh-issue','update-gh-issue'] | N/A | true |
-| assignee-teams | Comma-separated list of teams to assign issues to. This is used only for action 'create-gh-issue' |  | false |
+| assignee-teams | Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only for action 'create-gh-issue' |  | false |
 | assignee-users | Comma-separated list of users to assign issues to. This is used only for action 'create-gh-issue' |  | false |
 | component | The name of the component to plan. | N/A | false |
 | component-path | The path to the base component. Atmos defines this value as component\_path. | N/A | false |
