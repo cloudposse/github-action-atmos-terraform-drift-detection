@@ -235,16 +235,17 @@ runs:
             return;
           }
 
-          const repository = context.repo;
-          const organization = repository.owner;
-          const repo = repository.repo;
+          const orgName = context.repo.owner;
+          const repo = context.repo.repo;
           const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
+
+          console.log(`${orgName}/${repo}`);
 
           let usersFromTeams = [];
 
           for (let i = 0; i < teams.length; i++) {
               const response = await github.rest.teams.listMembersInOrg({
-                org: 'cloudposse',
+                org: orgName,
                 team_slug: teams[i]
               });
 
