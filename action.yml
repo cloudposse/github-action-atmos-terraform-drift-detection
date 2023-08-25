@@ -235,6 +235,7 @@ runs:
             return;
           }
 
+          const repository = context.repo;
           const orgName = context.repo.owner;
           const repo = context.repo.repo;
           const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
