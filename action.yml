@@ -5,8 +5,8 @@ branding:
   icon: 'server'
   color: 'white'
 inputs:
-  mode:
-    description: "Drift detection mode. One of ['triage','create-gh-issue','update-gh-issue']"
+  action:
+    description: "Drift detection action. One of ['triage','create-gh-issue','update-gh-issue']"
     required: true
   issue-labels:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
@@ -59,16 +59,16 @@ runs:
       shell: bash
       run: |
         echo "DEBUG_ENABLED=${{ inputs.debug }}" >> $GITHUB_ENV
-        echo "EXECUTION_MODE=${{ inputs.mode }}" >> $GITHUB_ENV
+        echo "ACTION=${{ inputs.action }}" >> $GITHUB_ENV
 
     - name: Download Artifacts
-      if: env.EXECUTION_MODE == 'triage'
+      if: env.ACTION == 'triage'
       uses: actions/download-artifact@v3
       with:
         name: metadata
 
     - name: Get Drift Detection Issues
-      if: env.EXECUTION_MODE == 'triage'
+      if: env.ACTION == 'triage'
       id: drift-detection-issues
       uses: actions/github-script@v6
       with:
@@ -110,7 +110,7 @@ runs:
           core.setOutput("issues", issuesSerialized);
 
     - name: Lookup Issues
-      if: env.EXECUTION_MODE == 'triage'
+      if: env.ACTION == 'triage'
       id: lookup-issues
       uses: actions/github-script@v6
       with:
@@ -178,7 +178,7 @@ runs:
 
     - name: Create Issue
       uses: actions/github-script@v6
-      if: env.EXECUTION_MODE == 'create-gh-issue'
+      if: env.ACTION == 'create-gh-issue'
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -201,7 +201,7 @@ runs:
           console.log(`Created new issue with number: ${issueNumber}`);
 
     - name: Update Issue
-      if: env.EXECUTION_MODE == 'update-gh-issue'
+      if: env.ACTION == 'update-gh-issue'
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
