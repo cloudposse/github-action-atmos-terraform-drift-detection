@@ -244,8 +244,8 @@ runs:
 
           for (let i = 0; i < teams.length; i++) {
               const response = await github.rest.teams.listMembersInOrg({
-                  organization,
-                  team_slug: teams[i]
+                org: 'cloudposse',
+                team_slug: teams[i]
               });
 
               const usersForCurrentTeam = response.data.map(user => user.login);
