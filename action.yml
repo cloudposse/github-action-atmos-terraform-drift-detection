@@ -131,7 +131,7 @@ runs:
           const componentsToMetadataSerialized = JSON.stringify(componentsToMetadata);
 
           console.log(`Components to State Map: ${componentsToStateSerialized}`);
-          console.log(`Components to Metadata Map: ${componentsToStateSerialized}`);
+          console.log(`Components to Metadata Map: ${componentsToMetadataSerialized}`);
 
           core.setOutput("components-to-state-map", componentsToStateSerialized);
           core.setOutput("components-to-metadata-map", componentsToMetadataSerialized);
@@ -144,7 +144,7 @@ runs:
         script: |
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToStateMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
-          const slugs = new Set([...componentsToIssuesMap.keys(), ...componentsToStateMap.keys()]);
+          const slugs = [...new Set([...Object.keys(componentsToIssuesMap), ...Object.keys(componentsToStateMap)])];
           const componentsToCreateIssues = [];
           const componentsToUpdateIssues = [];
           const componentsToCloseIssues = [];
