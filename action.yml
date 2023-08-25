@@ -123,8 +123,8 @@ runs:
             const slug = `${metadata.stack}-${metadata.component}`;
             const drifted = metadata.drifted;
 
-            componentsToState(slug, drifted);
-            componentsToMetadata(slug, metadata);
+            componentsToState.set(slug, drifted);
+            componentsToMetadata.set(slug, metadata);
           }
 
           const componentsToStateSerialized = JSON.stringify(componentsToState);
