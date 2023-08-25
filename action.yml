@@ -5,9 +5,6 @@ branding:
   icon: 'server'
   color: 'white'
 inputs:
-  action:
-    description: "Drift detection action. One of ['triage','create-gh-issue','update-gh-issue']"
-    required: true
   issue-labels:
     description: "Comma separated list of labels to add to the drift issues. Default: drift"
     default: 'drift'
@@ -16,30 +13,12 @@ inputs:
     description: "Number of open drift detection issues. Use `-1` to open unlimited number of issues. Default: 10"
     default: '10'
     required: false
-  issue-number:
-    description: "Issue number"
-    required: false
-  issue-title:
-    description: "Issue title"
-    required: false
-  issue-description:
-    description: "Issue description"
-    required: false
-  component:
-    description: "The name of the component to plan."
-    required: false
-  stack:
-    description: "The stack name for the given component."
-    required: false
-  component-path:
-    description: "The path to the base component. Atmos defines this value as component_path."
-    required: false
   assignee-users:
-    description: "Comma-separated list of users to assign issues to. This is used only for action 'create-gh-issue'"
+    description: "Comma-separated list of users to assign issues to. This is used only when issue is getting created."
     required: false
     default: ""
   assignee-teams:
-    description: "Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only for action 'create-gh-issue'"
+    description: "Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only when issue is getting created."
     required: false
     default: ""
   debug:
@@ -63,20 +42,12 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Define Job Control State Variables
-      shell: bash
-      run: |
-        echo "DEBUG_ENABLED=${{ inputs.debug }}" >> $GITHUB_ENV
-        echo "ACTION=${{ inputs.action }}" >> $GITHUB_ENV
-
     - name: Download Artifacts
-      if: env.ACTION == 'triage'
       uses: actions/download-artifact@v3
       with:
         name: metadata
 
-    - name: Get Drift Detection Issues
-      if: env.ACTION == 'triage'
+    - name: Get Drift Detection GitHub Issues
       id: drift-detection-issues
       uses: actions/github-script@v6
       with:
@@ -86,8 +57,19 @@ runs:
 
           let per_page = 100; // Max allowed value
           let page = 1;
-          let issueTitleToNumberMap = {};
+          let componentsToIssues = {};
           let isContinue = true;
+
+          function getMetadataFromIssueBody(body) {
+            const regex = /```json\s([\s\S]+?)\s```/;
+            const matched = body.match(regex);
+
+            if (matched && matched[1]) {
+              return JSON.parse(matched[1], 'utf8');
+            } else {
+              throw new Error("Invalid metadata in the issue description");
+            }
+          }
 
           while (isContinue) {
             const response = await github.rest.issues.listForRepo({
@@ -104,22 +86,22 @@ runs:
                 .filter(issue => issue.title.startsWith('Drift Detected in'));
               
               for (let issue of driftDetectionIssues) {
-                issueTitleToNumberMap[issue.title] = issue.number;
+                const metadata = getMetadataFromIssueBody(issue.data.body);
+                componentsToIssues[`${metadata.stack}-${metadata.component}`] = issue.number;
               }
 
               page++;
             }
           }
 
-          const issuesSerialized = JSON.stringify(issueTitleToNumberMap);
+          const componentsToIssuesSerialized = JSON.stringify(componentsToIssues);
 
-          console.log(`Found Issues: ${issuesSerialized}`);
+          console.log(`Components to Issues Map: ${componentsToIssuesSerialized}`);
 
-          core.setOutput("issues", issuesSerialized);
+          core.setOutput("components-to-issues-map", componentsToIssuesSerialized);
 
-    - name: Lookup Issues
-      if: env.ACTION == 'triage'
-      id: lookup-issues
+    - name: Read Metadata From Artifacts
+      id: metadata-from-artifacts
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
@@ -127,159 +109,217 @@ runs:
           const fs = require('fs');
           const path = require('path');
 
-          const maxIssues = parseInt(`${{ inputs.max-opened-issues }}`);
-          const issuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.issues }}', 'utf8');
-          const dirPath = '.';
-          const files = fs.readdirSync(dirPath);
-          const owner = "${{ github.repository_owner }}";
-          const repo = "${{ github.event.repository.name }}";
+          const files = fs.readdirSync('.');
+          const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
+          let componentsToState = {};
+          let componentsToMetadata = {};
 
-          const normalizedSlugs = [...new Set(files
-            .filter(file => file.endsWith('.metadata.json'))
-            .map(file => file.replace('.metadata.json', '')))];
+          for (let i = 0; i < metadataFiles.length; i++) {
+            const metadataFile = metadataFiles[i];
+            const metadataFileContent = fs.readFileSync(metadataFile, 'utf8');
+            const metadata = JSON.parse(fileContent);
 
-          const componentsWithIssues = { include: [] };
-          const componentsWithoutIssues = { include: [] };
+            const slug = `${metadata.stack}-${metadata.component}`;
+            const drifted = metadata.drifted;
 
-          let numDriftDetectionIssues = Object.keys(issuesMap).length;
+            componentsToState[slug] = drifted;
+            componentsToMetadata[slug] = metadata
+          }
 
-          for (let i = 0; i < normalizedSlugs.length; i++) {
-            const normalizedSlug = normalizedSlugs[i];
-            const metadata = JSON.parse(fs.readFileSync(path.join(dirPath, normalizedSlug + '.metadata.json'), 'utf8'));
-            const stack = metadata.stack;
-            const component = metadata.component;
-            const stackSlug = `${stack}-${component}`
-            const componentPath = metadata.componentPath;
-            const issueTitle = `Drift Detected in \`${stack}-${component}\``;
-            const issueDescription = Buffer.from(fs.readFileSync(path.join(dirPath, normalizedSlug + '.md'))).toString('base64');
-            const matrixComponent = {
-              component: component,
-              stack: stack,
-              componentPath: componentPath,
-              stackSlug: stackSlug,
-              issueTitle: issueTitle,
-              issueDescription: issueDescription,
-              issueNumber: -1
-            }
+          const componentsToStateSerialized = JSON.stringify(componentsToState);
+          const componentsToMetadataSerialized = JSON.stringify(componentsToMetadata);
 
-            if (issuesMap.hasOwnProperty(issueTitle)) {
-              matrixComponent.issueNumber = issuesMap[issueTitle];
-              componentsWithIssues.include.push(matrixComponent);
-            } else {
-              if (maxIssues < 0 || numDriftDetectionIssues < maxIssues) {
-                numDriftDetectionIssues++;
-                componentsWithoutIssues.include.push(matrixComponent);
+          console.log(`Components to State Map: ${componentsToStateSerialized}`);
+          console.log(`Components to Metadata Map: ${componentsToStateSerialized}`);
+
+          core.setOutput("components-to-state-map", componentsToStateSerialized);
+          core.setOutput("components-to-metadata-map", componentsToMetadataSerialized);
+
+    - name: Triage
+      id: triage
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToStateMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const slugs = new Set([...componentsToIssuesMap.keys(), ...componentsToStateMap.keys()]);
+          const componentsToCreateIssues = [];
+          const componentsToUpdateIssues = [];
+          const componentsToCloseIssues = [];
+
+          for (let slug of slugs) {
+            if (componentsToIssuesMap.has(slug)) {
+              const issueNumber = componentsToIssuesMap.get(slug);
+
+              if (componentsToStateMap.has(slug)) {
+                const drifted = componentsToStateMap.get(slug);
+
+                if (drifted) {
+                  console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
+                  componentsToUpdateIssues.push(slug);
+                } else {
+                  console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
+                  componentsToCloseIssues.push(slug);
+                }
               } else {
-                console.log(`Reached maximum of open drift detection issues. Skipping issue creation for ${issueTitle}`);
+                console.log(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
+                componentsToCloseIssues.push(slug);
+              }
+            } else {
+              const drifted = componentsToStateMap.get(slug);
+
+              if (drifted) {
+                console.log(`Component "${slug}" drifted. Issue ${issueNumber} needs to be created.`);
+                componentsToCreateIssues.push(slug);
+              } else {
+                console.log(`Component "${slug}" is not drifting. Skipping ...`);
               }
             }
           }
 
-          const componentsWithIssuesSerialized = JSON.stringify(componentsWithIssues);
-          const componentsWithoutIssuesSerialized = JSON.stringify(componentsWithoutIssues);
+          const componentsToCreateIssuesSerialized = JSON.stringify(componentsToCreateIssues);
+          const componentsToUpdateIssuesSerialized = JSON.stringify(componentsToUpdateIssues);
+          const componentsToCloseIssuesSerialized = JSON.stringify(componentsToCloseIssues);
 
-          console.log(`components-with-issues: ${componentsWithIssuesSerialized}`);
-          console.log(`components-without-issues: ${componentsWithoutIssuesSerialized}`);
+          console.log(`components-to-create-issues: ${componentsToCreateIssuesSerialized}`);
+          console.log(`components-to-update-issues: ${componentsToUpdateIssuesSerialized}`);
+          console.log(`components-to-close-issues: ${componentsToCloseIssuesSerialized}`);
 
-          core.setOutput('components-with-issues', componentsWithIssuesSerialized);
-          core.setOutput('components-without-issues', componentsWithoutIssuesSerialized);
+          core.setOutput('components-to-create-issues', componentsToCreateIssuesSerialized);
+          core.setOutput('components-to-update-issues', componentsToUpdateIssuesSerialized);
+          core.setOutput('components-to-close-issues', componentsToCloseIssuesSerialized);
 
-    - name: Create Issue
-      id: create-issue
+    - name: Close Issues
       uses: actions/github-script@v6
-      if: env.ACTION == 'create-gh-issue'
       with:
         github-token: ${{ inputs.token }}
         script: |
+          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
+          metadata-from-artifacts
+
           const repository = context.repo;
-          const issueTitle = "${{ inputs.issue-title }}";
-          const issueDescriptionEncoded = "${{ inputs.issue-description }}";
-          const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
+
+          for (let i = 0; i < componentsToCloseIssues.length; i++) {
+            const issueNumber = componentsToCloseIssues[i];
+
+            await github.issues.update({
+              ...repository,
+              issue_number: issueNumber,
+              state: "closed"
+            });
+
+            await github.rest.issues.addLabels({
+              ...repository,
+              issue_number: issueNumber,
+              labels: ['drift-recovered']
+            });
+          }
+
+    - name: Create Issues
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+
+          const repository = context.repo;
+
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
-          const newIssue = await github.rest.issues.create({
-              ...repository,
-            title: issueTitle,
-            body: issueDescription,
-            labels: labels
-          });
+          for (let i = 0; i < componentsToCreateIssue.length; i++) {
+            const slug = componentsToCreateIssues[i];
+            const issueTitle = `Drift Detected in \`${slug}\``;
+            const issueDescription = fs.readFileSync(`issue-description-${slug}.md');
+            
+            const newIssue = await github.rest.issues.create({
+                ...repository,
+              title: issueTitle,
+              body: issueDescription,
+              labels: labels
+            });
 
-          const issueNumber = newIssue.data.number;
+            const issueNumber = newIssue.data.number;
 
-          console.log(`Created new issue with number: ${issueNumber}`);
+            console.log(`Created new issue with number: ${issueNumber}`);
 
-          core.setOutput('issue-number', issueNumber);
-
-    - name: Assign Issue to User and/or Teams
-      uses: actions/github-script@v6
-      if: env.ACTION == 'create-gh-issue'
-      with:
-        github-token: ${{ inputs.token }}
-        script: |
-          const assigneeTeams = "${{ inputs.assignee-teams }}";
-          const assigneeUsers = "${{ inputs.assignee-users }}";
-
-          function csvToArray(csvString) {
-            return csvString
-                .split(',')
-                .map((item) => item.trim())
-                .filter((item) => item !== '');
+            core.setOutput('issue-number', issueNumber);
           }
 
-          let teams = csvToArray(assigneeTeams);
-          let users = csvToArray(assigneeUsers);
-
-          if (teams.length === 0 && users.length === 0) {
-            console.log("No users to assign issue with. Skipping ...");
-            return;
-          }
-
-          const repository = context.repo;
-          const orgName = context.repo.owner;
-          const repo = context.repo.repo;
-          const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
-
-          console.log(`${orgName}/${repo}`);
-
-          let usersFromTeams = [];
-
-          for (let i = 0; i < teams.length; i++) {
-              const response = await github.rest.teams.listMembersInOrg({
-                org: orgName,
-                team_slug: teams[i]
-              });
-
-              const usersForCurrentTeam = response.data.map(user => user.login);
-              usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
-          }
-
-          users = users.concat(usersFromTeams);
-          users = [...new Set(users)]; // get unique set
-
-          await github.rest.issues.addAssignees({
-            ...repository,
-            issue_number: issueNumber,
-            assignees: users
-          });
-
-    - name: Update Issue
-      if: env.ACTION == 'update-gh-issue'
+    - name: Update Issues
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
         script: |
+          const componentsToUpdateIssues = JSON.parse('${{ steps.triage.outputs.components-to-update-issues }}', 'utf8');
+          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+
           const repository = context.repo;
-          const issueNumber = parseInt("${{ inputs.issue-number }}", 10);
-          const issueDescriptionEncoded = "${{ inputs.issue-description }}";
-          const issueDescription = Buffer.from(issueDescriptionEncoded, 'base64').toString('utf8');
 
-          console.log(`Found issue: ${issueNumber}`);
+          for (let i = 0; i < componentsToUpdateIssues.length; i++) {
+            const slug = componentsToUpdateIssues[i];
+            const issueDescription = fs.readFileSync(`issue-description-${slug}.md');
+            const issueNumber = componentsToIssuesMap.get(slug);
+            
+            await github.rest.issues.update({
+                ...repository,
+              issue_number: issueNumber,
+              body: issueDescription
+            });
 
-          await github.rest.issues.update({
-              ...repository,
-            issue_number: issueNumber,
-            body: issueDescription
-          });
+            console.log(`Updated issue: ${issueNumber}`);
+          }
 
-          console.log(`Updated issue: ${issueNumber}`);
+    # - name: Assign Issue to User and/or Teams
+    #   uses: actions/github-script@v6
+    #   if: env.ACTION == 'create-gh-issue'
+    #   with:
+    #     github-token: ${{ inputs.token }}
+    #     script: |
+    #       const assigneeTeams = "${{ inputs.assignee-teams }}";
+    #       const assigneeUsers = "${{ inputs.assignee-users }}";
+
+    #       function csvToArray(csvString) {
+    #         return csvString
+    #             .split(',')
+    #             .map((item) => item.trim())
+    #             .filter((item) => item !== '');
+    #       }
+
+    #       let teams = csvToArray(assigneeTeams);
+    #       let users = csvToArray(assigneeUsers);
+
+    #       if (teams.length === 0 && users.length === 0) {
+    #         console.log("No users to assign issue with. Skipping ...");
+    #         return;
+    #       }
+
+    #       const repository = context.repo;
+    #       const orgName = context.repo.owner;
+    #       const repo = context.repo.repo;
+    #       const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
+
+    #       console.log(`${orgName}/${repo}`);
+
+    #       let usersFromTeams = [];
+
+    #       for (let i = 0; i < teams.length; i++) {
+    #           const response = await github.rest.teams.listMembersInOrg({
+    #             org: orgName,
+    #             team_slug: teams[i]
+    #           });
+
+    #           const usersForCurrentTeam = response.data.map(user => user.login);
+    #           usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+    #       }
+
+    #       users = users.concat(usersFromTeams);
+    #       users = [...new Set(users)]; // get unique set
+
+    #       await github.rest.issues.addAssignees({
+    #         ...repository,
+    #         issue_number: issueNumber,
+    #         assignees: users
+    #       });
