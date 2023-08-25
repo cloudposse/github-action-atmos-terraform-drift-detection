@@ -65,7 +65,7 @@ runs:
       if: env.EXECUTION_MODE == 'triage'
       uses: actions/download-artifact@v3
       with:
-        name: plan-artifacts
+        name: metadata
 
     - name: Get Drift Detection Issues
       if: env.EXECUTION_MODE == 'triage'
