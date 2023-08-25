@@ -58,6 +58,7 @@ runs:
           let per_page = 100; // Max allowed value
           let page = 1;
           let componentsToIssues = {};
+          let componentsToMetadata = {};
           let isContinue = true;
 
           function getMetadataFromIssueBody(body) {
@@ -88,6 +89,7 @@ runs:
               for (let issue of driftDetectionIssues) {
                 const metadata = getMetadataFromIssueBody(issue.body);
                 componentsToIssues[`${metadata.stack}-${metadata.component}`] = issue.number;
+                componentsToMetadata[`${metadata.stack}-${metadata.component}`] = metadata;
               }
 
               page++;
@@ -95,10 +97,13 @@ runs:
           }
 
           const componentsToIssuesSerialized = JSON.stringify(componentsToIssues);
+          const componentsToMetadataSerialized = JSON.stringify(componentsToMetadata);
 
           console.log(`Components to Issues Map: ${componentsToIssuesSerialized}`);
+          console.log(`Components to Metadata Map: ${componentsToMetadataSerialized}`);
 
           core.setOutput("components-to-issues-map", componentsToIssuesSerialized);
+          core.setOutput("components-to-metadata-map", componentsToMetadataSerialized);
 
     - name: Read Metadata From Artifacts
       id: metadata-from-artifacts
@@ -142,6 +147,7 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToMetadataMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-metadata-map }}', 'utf8');
           const componentsToStateMap = JSON.parse('${{ steps.metadata-from-artifacts.outputs.components-to-state-map }}', 'utf8');
 
           let slugs = new Set([...Object.keys(componentsToIssuesMap), ...Object.keys(componentsToStateMap)]);
@@ -158,8 +164,14 @@ runs:
                 const drifted = componentsToStateMap[slug];
 
                 if (drifted) {
-                  console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
-                  componentsToUpdateIssues.push(slug);
+                  const commitSHA = componentsToMetadataMap[slug].commitSHA;
+                  const currentSHA = "${{ github.sha }}";
+                  if (currentSHA === commitSHA) {
+                    console.log(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
+                  } else {
+                    console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
+                    componentsToUpdateIssues.push(slug);
+                  }
                 } else {
                   console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
                   componentsToCloseIssues.push(slug);
@@ -267,7 +279,7 @@ runs:
             const slug = componentsToUpdateIssues[i];
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             const issueNumber = componentsToIssuesMap[slug];
-            
+
             await github.rest.issues.update({
                 ...repository,
               issue_number: issueNumber,
