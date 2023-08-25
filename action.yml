@@ -149,6 +149,8 @@ runs:
           const componentsToUpdateIssues = [];
           const componentsToCloseIssues = [];
 
+          console.log(slugs);
+
           for (let slug of slugs) {
             if (componentsToIssuesMap.hasOwnProperty(slug)) {
               const issueNumber = componentsToIssuesMap[slug];
