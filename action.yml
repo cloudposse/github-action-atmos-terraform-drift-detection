@@ -252,6 +252,14 @@ runs:
               usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
           }
 
+          users = users.concat(usersFromTeams);
+          users = [...new Set(users)]; // get unique set
+
+          await octokit.rest.issues.addAssignees({
+            ...repository,
+            issue_number: issueNumber,
+            assignees: users
+          });
 
     - name: Update Issue
       if: env.ACTION == 'update-gh-issue'
