@@ -235,6 +235,13 @@ runs:
             return;
           }
 
+          const repository = context.repo;
+          const organization = repository.owner;
+          const repo = repository.repo;
+          const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
+
+          let usersFromTeams = [];
+
 
     - name: Update Issue
       if: env.ACTION == 'update-gh-issue'
