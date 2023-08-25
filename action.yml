@@ -34,6 +34,10 @@ inputs:
   component-path:
     description: "The path to the base component. Atmos defines this value as component_path."
     required: false
+  assignees:
+    description: "Comma separated list of team names without the org prefix. Issue will be assigned to the team members.\n*Important Requirement*: if using the teams input parameter, you need to use a personal access token with read:org scope (the default GITHUB_TOKEN is not enough).\nThis is used only for action 'create-gh-issue'"
+    required: false
+    default: ""
   debug:
     description: "Enable action debug mode. Default: false"
     default: 'false'
@@ -177,6 +181,7 @@ runs:
           core.setOutput('components-without-issues', componentsWithoutIssuesSerialized);
 
     - name: Create Issue
+      id: create-issue
       uses: actions/github-script@v6
       if: env.ACTION == 'create-gh-issue'
       with:
@@ -199,6 +204,16 @@ runs:
           const issueNumber = newIssue.data.number;
 
           console.log(`Created new issue with number: ${issueNumber}`);
+
+          core.setOutput('issue-number', issueNumber);
+
+    - name: Assign Issue
+      uses: pozil/auto-assign-issue@v1
+      if: env.ACTION == 'create-gh-issue'
+      with:
+        assignees: ${{ inputs.assignees }}
+        issueNumber: ${{ steps.create-issue.outputs.issue-number }}
+        repo-token: ${{ inputs.token }}
 
     - name: Update Issue
       if: env.ACTION == 'update-gh-issue'
