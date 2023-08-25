@@ -235,7 +235,7 @@ runs:
           for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
-            const issueDescription = fs.readFileSync(`issue-description-${slug}.md`);
+            const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             
             const newIssue = await github.rest.issues.create({
                 ...repository,
@@ -265,7 +265,7 @@ runs:
 
           for (let i = 0; i < componentsToUpdateIssues.length; i++) {
             const slug = componentsToUpdateIssues[i];
-            const issueDescription = fs.readFileSync(`issue-description-${slug}.md');
+            const issueDescription = fs.readFileSync(`issue-description-${slug}.md', 'utf8');
             const issueNumber = componentsToIssuesMap[slug];
             
             await github.rest.issues.update({
