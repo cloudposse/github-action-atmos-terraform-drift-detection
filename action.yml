@@ -344,6 +344,14 @@ runs:
             rows.push(`| \`${slug}\` | DRIFTED | Created issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
           }
 
+          for (let i = 0; i < componentsToCreateIssues.length; i++) {
+            const slug = componentsToCreateIssues[i];
+
+            if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
+              rows.push(`| \`${slug}\` | DRIFTED | Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached |`);
+            }
+          }
+
 
     - name: Post Step Summaries
       uses: actions/github-script@v6
