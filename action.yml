@@ -341,14 +341,14 @@ runs:
           for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
             const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-            rows.push(`| \`${slug}\` | DRIFTED | Created issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
           }
 
           for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-              rows.push(`| \`${slug}\` | DRIFTED | Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached |`);
+              rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached |`);
             }
           }
 
@@ -366,14 +366,13 @@ runs:
             rows.push(`| \`${slug}\` | RECOVERED | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
           }
 
-          const componentsToNewlyCreatedIssuesSet = new Set(componentsToNewlyCreatedIssues);
           for (let i = 0; i < driftingComponents.length; i++) {
             const slug = driftingComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            //if (!componentsToNewlyCreatedIssuesSet.has(slug)) {
-            //  rows.push(`| \`${slug}\` | DRIFTED | Component drifting. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-            //}
+            if (!componentsToNewlyCreatedIssuesSet.hasOwnProperty(slug)) {
+              rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            }
           }
 
     - name: Post Step Summaries
