@@ -306,7 +306,6 @@ runs:
           }
 
     - name: Post Step Summaries
-      id: metadata-from-artifacts
       uses: actions/github-script@v6
       with:
         github-token: ${{ inputs.token }}
