@@ -304,6 +304,32 @@ runs:
             console.log(`Updated issue: ${issueNumber}`);
           }
 
+    - name: Post Step Summaries
+      id: metadata-from-artifacts
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const fs = require('fs');
+
+          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const componentsToUpdateIssues = JSON.parse('${{ steps.triage.outputs.components-to-update-issues }}', 'utf8');
+
+          for (let i = 0; i < componentsToCreateIssues.length; i++) {
+            const slug = componentsToCreateIssues[i];
+            const file = `stem-summary-${slug}.md`;
+            const content = fs.readFileSync(filePath, 'utf-8');
+            await core.summary.addRaw(fs.readFileSync(filePath, 'utf-8')).write();
+          }
+
+          for (let i = 0; i < componentsToUpdateIssues.length; i++) {
+            const slug = componentsToUpdateIssues[i];
+            const file = `stem-summary-${slug}.md`;
+            const content = fs.readFileSync(filePath, 'utf-8');
+            await core.summary.addRaw(fs.readFileSync(filePath, 'utf-8')).write();
+          }
+
+
     # - name: Assign Issue to User and/or Teams
     #   uses: actions/github-script@v6
     #   if: env.ACTION == 'create-gh-issue'
