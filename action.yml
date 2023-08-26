@@ -154,8 +154,8 @@ runs:
 
           const componentsToCreateIssues = [];
           const componentsToUpdateIssues = [];
-          const componentsToCloseIssues = [];
-          const componentsToCloseReason = {};
+          const removedComponents = [];
+          const recoveredComponents = [];
           const driftingComponents = [];
 
           for (let slug of slugs) {
@@ -178,13 +178,11 @@ runs:
                   }
                 } else {
                   console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
-                  componentsToCloseIssues.push(slug);
-                  componentsToCloseReason[slug] = `Component \`${slug}\` is not drifting anymore`;
+                  recoveredComponents.push(slug);
                 }
               } else {
                 console.log(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
-                componentsToCloseIssues.push(slug);
-                componentsToCloseReason[slug] = `Component \`${slug}\` has been removed`;
+                removedComponents.push(slug);
               }
             } else {
               const drifted = componentsToStateMap[slug];
@@ -201,19 +199,20 @@ runs:
 
           const componentsToCreateIssuesSerialized = JSON.stringify(componentsToCreateIssues);
           const componentsToUpdateIssuesSerialized = JSON.stringify(componentsToUpdateIssues);
-          const componentsToCloseIssuesSerialized = JSON.stringify(componentsToCloseIssues);
-          const componentsToCloseReasonSerialized = JSON.stringify(componentsToCloseReason);
+          const removedComponentsSerialized = JSON.stringify(removedComponents);
+          const recoveredComponentsSerialized = JSON.stringify(recoveredComponents);
           const driftingComponentsSerialized = JSON.stringify(driftingComponents);
 
           console.log(`components-to-create-issues: ${componentsToCreateIssuesSerialized}`);
           console.log(`components-to-update-issues: ${componentsToUpdateIssuesSerialized}`);
-          console.log(`components-to-close-issues: ${componentsToCloseIssuesSerialized}`);
+          console.log(`removed-components: ${removedComponentsSerialized}`);
+          console.log(`recovered-components: ${recoveredComponentsSerialized}`);
           console.log(`drifting-components: ${driftingComponentsSerialized}`);
 
           core.setOutput('components-to-create-issues', componentsToCreateIssuesSerialized);
           core.setOutput('components-to-update-issues', componentsToUpdateIssuesSerialized);
-          core.setOutput('components-to-close-issues', componentsToCloseIssuesSerialized);
-          core.setOutput('components-to-close-reason', componentsToCloseReasonSerialized);
+          core.setOutput('removed-components', removedComponentsSerialized);
+          core.setOutput('recovered-components', recoveredComponentsSerialized);
           core.setOutput('drifting-components', driftingComponentsSerialized);
 
     - name: Close Issues
@@ -222,13 +221,14 @@ runs:
         github-token: ${{ inputs.token }}
         script: |
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
-          const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
-          const componentsToCloseReason = JSON.parse('${{ steps.triage.outputs.components-to-close-reason }}', 'utf8');
+          const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
+          const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
+          const componentsToCloseIssuesFor = removedComponents.concat(recoveredComponents);
 
           const repository = context.repo;
 
-          for (let i = 0; i < componentsToCloseIssues.length; i++) {
-            const slug = componentsToCloseIssues[i];
+          for (let i = 0; i < componentsToCloseIssuesFor.length; i++) {
+            const slug = componentsToCloseIssuesFor[i];
             const issueNumber = componentsToIssuesMap[slug];
 
             github.rest.issues.update({
@@ -246,12 +246,13 @@ runs:
             github.rest.issues.createComment({
               ...repository,
               issue_number: issueNumber,
-              body: componentsToCloseReason[slug],
+              body: removedComponents.hasOwnProperty(slug) ? `Component \`${slug}\` has been removed` : `Component \`${slug}\` is not drifting anymore`,
             });
           }
 
     - name: Create Issues
       uses: actions/github-script@v6
+      id: create-issues
       with:
         github-token: ${{ inputs.token }}
         script: |
@@ -260,9 +261,9 @@ runs:
           const repository = context.repo;
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
-          const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
           const numberOfIssuesToCreate = Math.min(Object.keys(componentsToIssuesMap).length, componentsToCreateIssues.length, maxOpenedIssues);
+          const componentsToNewlyCreatedIssues = {};
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
@@ -281,10 +282,18 @@ runs:
 
             const issueNumber = newIssue.data.number;
 
+            componentsToNewlyCreatedIssues[slug] = issueNumber;
+
             console.log(`Created new issue with number: ${issueNumber}`);
 
             core.setOutput('issue-number', issueNumber);
           }
+
+          const componentsToNewlyCreatedIssuesSerialized = JSON.stringify(componentsToNewlyCreatedIssues);
+
+          console.log(`components-to-newly-created-issues: ${componentsToNewlyCreatedIssuesSerialized}`);
+
+          core.setOutput('components-to-newly-created-issues', componentsToNewlyCreatedIssuesSerialized);
 
     - name: Update Issues
       uses: actions/github-script@v6
@@ -310,6 +319,61 @@ runs:
             });
 
             console.log(`Updated issue: ${issueNumber}`);
+          }
+
+    - name: Post Drift Detection Summary
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const orgName = context.repo.owner;
+          const repo = context.repo.repo;
+
+          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToNewlyCreatedIssues = JSON.parse('${{ steps.create-issues.outputs.components-to-newly-created-issues }}', 'utf8');
+          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
+          const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
+          const driftingComponents = JSON.parse('${{ steps.triage.outputs.drifting-components }}', 'utf8');
+
+          const rows = [];
+
+          for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
+            const issueNumber = componentsToNewlyCreatedIssues[slug];
+
+            rows.push(`| \`${slug}\` | DRIFTED | Created issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+          }
+
+          for (let i = 0; i < componentsToCreateIssues.length; i++) {
+            const slug = componentsToCreateIssues[i];
+
+            if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
+              rows.push(`| \`${slug}\` | DRIFTED | Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached |`);
+            }
+          }
+
+          for (let i = 0; i < removedComponents.length; i++) {
+            const slug = removedComponents[i];
+            const issueNumber = componentsToIssuesMap[slug];
+
+            rows.push(`| \`${slug}\` | REMOVED | Component was removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+          }
+
+          for (let i = 0; i < recoveredComponents.length; i++) {
+            const slug = recoveredComponents[i];
+            const issueNumber = componentsToIssuesMap[slug];
+
+            rows.push(`| \`${slug}\` | RECOVERED | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+          }
+
+          const componentsToNewlyCreatedIssuesSet = new Set(componentsToNewlyCreatedIssues);
+          for (let i = 0; i < driftingComponents.length; i++) {
+            const slug = driftingComponents[i];
+            const issueNumber = componentsToIssuesMap[slug];
+
+            if (!componentsToNewlyCreatedIssuesSet.has(slug)) {
+              rows.push(`| \`${slug}\` | DRIFTED | Component drifting. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            }
           }
 
     - name: Post Step Summaries
