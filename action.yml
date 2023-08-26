@@ -366,7 +366,7 @@ runs:
             rows.push(`| \`${slug}\` | RECOVERED | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
           }
 
-          //const componentsToNewlyCreatedIssuesSet = new Set(componentsToNewlyCreatedIssues);
+          const componentsToNewlyCreatedIssuesSet = new Set(componentsToNewlyCreatedIssues);
           for (let i = 0; i < driftingComponents.length; i++) {
             const slug = driftingComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
