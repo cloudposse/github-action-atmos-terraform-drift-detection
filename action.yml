@@ -251,10 +251,11 @@ runs:
           const fs = require('fs');
 
           const repository = context.repo;
+          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
           const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
-          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToCreateIssues).length, maxOpenedIssues);
+          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToIssuesMap).length, maxOpenedIssues);
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
