@@ -352,6 +352,13 @@ runs:
             }
           }
 
+          for (let i = 0; i < removedComponents.length; i++) {
+            const slug = removedComponents[i];
+            const issueNumber = componentsToIssuesMap[slug];
+
+            rows.push(`| \`${slug}\` | REMOVED | Component was removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+          }
+
 
     - name: Post Step Summaries
       uses: actions/github-script@v6
