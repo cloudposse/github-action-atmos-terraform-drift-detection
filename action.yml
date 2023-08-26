@@ -318,15 +318,17 @@ runs:
           for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
             const file = `stem-summary-${slug}.md`;
-            const content = fs.readFileSync(filePath, 'utf-8');
-            await core.summary.addRaw(fs.readFileSync(filePath, 'utf-8')).write();
+            const content = fs.readFileSync(file, 'utf-8');
+
+            await core.summary.addRaw(content).write();
           }
 
           for (let i = 0; i < componentsToUpdateIssues.length; i++) {
             const slug = componentsToUpdateIssues[i];
             const file = `stem-summary-${slug}.md`;
             const content = fs.readFileSync(filePath, 'utf-8');
-            await core.summary.addRaw(fs.readFileSync(filePath, 'utf-8')).write();
+
+            await core.summary.addRaw(content).write();
           }
 
 
