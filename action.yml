@@ -221,7 +221,8 @@ runs:
           const repository = context.repo;
 
           for (let i = 0; i < componentsToCloseIssues.length; i++) {
-            const issueNumber = componentsToIssuesMap[componentsToCloseIssues[i]];
+            const slug = componentsToCloseIssues[i];
+            const issueNumber = componentsToIssuesMap[slug];
 
             github.rest.issues.update({
               ...repository,
@@ -238,7 +239,7 @@ runs:
             github.rest.issues.createComment({
               ...repository,
               issue_number: issueNumber,
-              body: componentsToCloseReason,
+              body: componentsToCloseReason[slug],
             });
           }
 
