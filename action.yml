@@ -250,14 +250,16 @@ runs:
         script: |
           const fs = require('fs');
 
-          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
-
           const repository = context.repo;
+          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
+          const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
+          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToCreateIssues).length, maxOpenedIssues);
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
-          for (let i = 0; i < componentsToCreateIssues.length; i++) {
+          for (let i = 0; i < numberOfIssuesToCreate; i++) {
             const slug = componentsToCreateIssues[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
