@@ -255,7 +255,7 @@ runs:
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
           const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
-          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToIssuesMap).length, maxOpenedIssues);
+          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToIssuesMap).length, componentsToCreateIssues.length, maxOpenedIssues);
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
