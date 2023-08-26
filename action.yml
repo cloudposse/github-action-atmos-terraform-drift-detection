@@ -155,6 +155,7 @@ runs:
           const componentsToCreateIssues = [];
           const componentsToUpdateIssues = [];
           const componentsToCloseIssues = [];
+          const componentsToCloseReason = {};
 
           for (let slug of slugs) {
             if (componentsToIssuesMap.hasOwnProperty(slug)) {
@@ -175,10 +176,12 @@ runs:
                 } else {
                   console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
                   componentsToCloseIssues.push(slug);
+                  componentsToCloseReason[slug] = `Component \`${slug}\` is not drifting anymore`;
                 }
               } else {
                 console.log(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
                 componentsToCloseIssues.push(slug);
+                componentsToCloseReason[slug] = `Component \`${slug}\` has been removed`;
               }
             } else {
               const drifted = componentsToStateMap[slug];
@@ -195,6 +198,7 @@ runs:
           const componentsToCreateIssuesSerialized = JSON.stringify(componentsToCreateIssues);
           const componentsToUpdateIssuesSerialized = JSON.stringify(componentsToUpdateIssues);
           const componentsToCloseIssuesSerialized = JSON.stringify(componentsToCloseIssues);
+          const componentsToCloseReasonSerialized = JSON.stringify(componentsToCloseReason);
 
           console.log(`components-to-create-issues: ${componentsToCreateIssuesSerialized}`);
           console.log(`components-to-update-issues: ${componentsToUpdateIssuesSerialized}`);
@@ -203,6 +207,7 @@ runs:
           core.setOutput('components-to-create-issues', componentsToCreateIssuesSerialized);
           core.setOutput('components-to-update-issues', componentsToUpdateIssuesSerialized);
           core.setOutput('components-to-close-issues', componentsToCloseIssuesSerialized);
+          core.setOutput('components-to-close-reason', componentsToCloseReasonSerialized);
 
     - name: Close Issues
       uses: actions/github-script@v6
@@ -211,22 +216,29 @@ runs:
         script: |
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToCloseIssues = JSON.parse('${{ steps.triage.outputs.components-to-close-issues }}', 'utf8');
+          const componentsToCloseReason = JSON.parse('${{ steps.triage.outputs.components-to-close-reason }}', 'utf8');
 
           const repository = context.repo;
 
           for (let i = 0; i < componentsToCloseIssues.length; i++) {
-            const issueNumber = componentsToCloseIssues[i];
+            const issueNumber = componentsToIssuesMap[componentsToCloseIssues[i]];
 
-            await github.issues.update({
+            github.issues.update({
               ...repository,
               issue_number: issueNumber,
               state: "closed"
             });
 
-            await github.rest.issues.addLabels({
+            github.rest.issues.addLabels({
               ...repository,
               issue_number: issueNumber,
               labels: ['drift-recovered']
+            });
+
+            github.rest.issues.createComment({
+              ...repository,
+              issue_number: issueNumber,
+              body: componentsToCloseReason,
             });
           }
 
@@ -250,7 +262,7 @@ runs:
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             
             const newIssue = await github.rest.issues.create({
-                ...repository,
+              ...repository,
               title: issueTitle,
               body: issueDescription,
               labels: labels
@@ -280,8 +292,8 @@ runs:
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             const issueNumber = componentsToIssuesMap[slug];
 
-            await github.rest.issues.update({
-                ...repository,
+            github.rest.issues.update({
+              ...repository,
               issue_number: issueNumber,
               body: issueDescription
             });
