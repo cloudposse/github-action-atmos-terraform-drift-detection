@@ -262,7 +262,9 @@ runs:
           const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
-          const numberOfIssuesToCreate = Math.min(Object.keys(componentsToIssuesMap).length, componentsToCreateIssues.length, maxOpenedIssues);
+          const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
+          const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
+          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - (Object.keys(componentsToIssuesMap).length - removedComponents.length - recoveredComponents.length));
           const componentsToNewlyCreatedIssues = {};
 
           const issueLabels = "${{ inputs.issue-labels }}"
