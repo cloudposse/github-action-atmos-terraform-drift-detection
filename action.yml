@@ -336,19 +336,19 @@ runs:
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
           const driftingComponents = JSON.parse('${{ steps.triage.outputs.drifting-components }}', 'utf8');
 
-          const rows = [];
+          const table = [[{data: 'Component', header: true}, {data: 'State', header: true}, {data: 'Comments', header: true}]];
 
           for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
             const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-            rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            table.push(["`${slug}`", "DRIFTED", `Component drifted. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`]);
           }
 
           for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-              rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached |`);
+              table.push(["`${slug}`", "DRIFTED", `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
             }
           }
 
@@ -356,24 +356,29 @@ runs:
             const slug = removedComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            rows.push(`| \`${slug}\` | REMOVED | Component was removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            table.push(["`${slug}`", "REMOVED", `Component was removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`]);
           }
 
           for (let i = 0; i < recoveredComponents.length; i++) {
             const slug = recoveredComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            rows.push(`| \`${slug}\` | RECOVERED | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            table.push(["`${slug}`", "RECOVERED", `Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`]);
           }
 
           for (let i = 0; i < driftingComponents.length; i++) {
             const slug = driftingComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            if (!componentsToNewlyCreatedIssuesSet.hasOwnProperty(slug)) {
-              rows.push(`| \`${slug}\` | DRIFTED | Component drifted. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+            if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
+              table.push(["`${slug}`", "DRIFTED", `Component drifted. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`]);
             }
           }
+
+          await core.summary
+            .addHeading('Drift Detection Summary')
+            .addTable(table)
+            .write()
 
     - name: Post Step Summaries
       uses: actions/github-script@v6
