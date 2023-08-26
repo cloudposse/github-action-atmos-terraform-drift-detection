@@ -156,6 +156,7 @@ runs:
           const componentsToUpdateIssues = [];
           const componentsToCloseIssues = [];
           const componentsToCloseReason = {};
+          const driftingComponents = [];
 
           for (let slug of slugs) {
             if (componentsToIssuesMap.hasOwnProperty(slug)) {
@@ -169,9 +170,11 @@ runs:
                   const currentSHA = "${{ github.sha }}";
                   if (currentSHA === commitSHA) {
                     console.log(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
+                    driftingComponents.push(slug);
                   } else {
                     console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
                     componentsToUpdateIssues.push(slug);
+                    driftingComponents.push(slug);
                   }
                 } else {
                   console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
@@ -189,6 +192,7 @@ runs:
               if (drifted) {
                 console.log(`Component "${slug}" drifted. New issue has to be created.`);
                 componentsToCreateIssues.push(slug);
+                driftingComponents.push(slug);
               } else {
                 console.log(`Component "${slug}" is not drifting. Skipping ...`);
               }
@@ -199,15 +203,18 @@ runs:
           const componentsToUpdateIssuesSerialized = JSON.stringify(componentsToUpdateIssues);
           const componentsToCloseIssuesSerialized = JSON.stringify(componentsToCloseIssues);
           const componentsToCloseReasonSerialized = JSON.stringify(componentsToCloseReason);
+          const driftingComponentsSerialized = JSON.stringify(driftingComponents);
 
           console.log(`components-to-create-issues: ${componentsToCreateIssuesSerialized}`);
           console.log(`components-to-update-issues: ${componentsToUpdateIssuesSerialized}`);
           console.log(`components-to-close-issues: ${componentsToCloseIssuesSerialized}`);
+          console.log(`drifting-components: ${driftingComponentsSerialized}`);
 
           core.setOutput('components-to-create-issues', componentsToCreateIssuesSerialized);
           core.setOutput('components-to-update-issues', componentsToUpdateIssuesSerialized);
           core.setOutput('components-to-close-issues', componentsToCloseIssuesSerialized);
           core.setOutput('components-to-close-reason', componentsToCloseReasonSerialized);
+          core.setOutput('drifting-components', driftingComponentsSerialized);
 
     - name: Close Issues
       uses: actions/github-script@v6
@@ -312,25 +319,15 @@ runs:
         script: |
           const fs = require('fs');
 
-          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
-          const componentsToUpdateIssues = JSON.parse('${{ steps.triage.outputs.components-to-update-issues }}', 'utf8');
+          const driftingComponents = JSON.parse('${{ steps.triage.outputs.drifting-components }}', 'utf8');
 
-          for (let i = 0; i < componentsToCreateIssues.length; i++) {
-            const slug = componentsToCreateIssues[i];
+          for (let i = 0; i < driftingComponents.length; i++) {
+            const slug = driftingComponents[i];
             const file = `stem-summary-${slug}.md`;
             const content = fs.readFileSync(file, 'utf-8');
 
             await core.summary.addRaw(content).write();
           }
-
-          for (let i = 0; i < componentsToUpdateIssues.length; i++) {
-            const slug = componentsToUpdateIssues[i];
-            const file = `stem-summary-${slug}.md`;
-            const content = fs.readFileSync(filePath, 'utf-8');
-
-            await core.summary.addRaw(content).write();
-          }
-
 
     # - name: Assign Issue to User and/or Teams
     #   uses: actions/github-script@v6
