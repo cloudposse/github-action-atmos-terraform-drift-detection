@@ -323,7 +323,7 @@ runs:
 
           for (let i = 0; i < driftingComponents.length; i++) {
             const slug = driftingComponents[i];
-            const file = `stem-summary-${slug}.md`;
+            const file = `step-summary-${slug}.md`;
             const content = fs.readFileSync(file, 'utf-8');
 
             await core.summary.addRaw(content).write();
