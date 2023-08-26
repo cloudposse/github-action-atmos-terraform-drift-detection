@@ -223,7 +223,7 @@ runs:
           for (let i = 0; i < componentsToCloseIssues.length; i++) {
             const issueNumber = componentsToIssuesMap[componentsToCloseIssues[i]];
 
-            github.issues.update({
+            github.rest.issues.update({
               ...repository,
               issue_number: issueNumber,
               state: "closed"
