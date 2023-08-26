@@ -341,14 +341,14 @@ runs:
           for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
             const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-            table.push([`\`${slug}\``, "DRIFTED", `Component drifted. Created new issue #${issueNumber}`]);
+            table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < componentsToCreateIssues.length; i++) {
             const slug = componentsToCreateIssues[i];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-              table.push([`\`${slug}\``, "DRIFTED", `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
+              table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
             }
           }
 
@@ -356,14 +356,14 @@ runs:
             const slug = removedComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            table.push([`\`${slug}\``, "REMOVED", `Component was removed. Closed issue #${issueNumber}`]);
+            table.push([`<pre>${slug}</pre>`, "REMOVED", `Component was removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < recoveredComponents.length; i++) {
             const slug = recoveredComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            table.push([`\`${slug}\``, "RECOVERED", `Component recovered. Closed issue #${issueNumber}`]);
+            table.push([`<pre>${slug}</pre>`, "RECOVERED", `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < driftingComponents.length; i++) {
@@ -371,7 +371,7 @@ runs:
             const issueNumber = componentsToIssuesMap[slug];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-              table.push([`\`${slug}\``, "DRIFTED", `Component drifted. Issue already exists #${issueNumber}`]);
+              table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
             }
           }
 
