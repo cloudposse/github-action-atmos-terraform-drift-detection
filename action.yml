@@ -268,7 +268,8 @@ runs:
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
-          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
+          const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
+          const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
           const componentsToNewlyCreatedIssues = {};
 
           const issueLabels = "${{ inputs.issue-labels }}"
@@ -308,7 +309,7 @@ runs:
             }
           }
 
-          for (let i = 0; i < numberOfIssuesToCreate; i++) {
+          for (let i = 0; i < numOfIssuesToCreate; i++) {
             const slug = componentsCandidatesToCreateIssue[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
