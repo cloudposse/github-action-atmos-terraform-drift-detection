@@ -146,6 +146,7 @@ runs:
           let slugs = new Set([...Object.keys(componentsToIssues), ...Object.keys(componentsToState)]);
 
           const componentsCandidatesToCreateIssue = [];
+          const componentsCandidatesToCloseIssue = [];
           const componentsToUpdateExistingIssue = [];
           const removedComponents = [];
           const recoveredComponents = [];
@@ -171,10 +172,12 @@ runs:
                   }
                 } else {
                   console.log(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
+                  componentsCandidatesToCloseIssue.push(slug);
                   recoveredComponents.push(slug);
                 }
               } else {
                 console.log(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
+                componentsCandidatesToCloseIssue.push(slug);
                 removedComponents.push(slug);
               }
             } else {
@@ -195,18 +198,21 @@ runs:
           const removedComponentsSerialized = JSON.stringify(removedComponents);
           const recoveredComponentsSerialized = JSON.stringify(recoveredComponents);
           const driftingComponentsSerialized = JSON.stringify(driftingComponents);
+          const componentsCandidatesToCloseIssueSerialized = JSON.stringify(componentsCandidatesToCloseIssue);
 
           console.log(`components-candidates-to-create-issue: ${componentsCandidatesToCreateIssueSerialized}`);
           console.log(`components-to-update-existing-issue: ${componentsToUpdateExistingIssueSerialized}`);
           console.log(`removed-components: ${removedComponentsSerialized}`);
           console.log(`recovered-components: ${recoveredComponentsSerialized}`);
           console.log(`drifting-components: ${driftingComponentsSerialized}`);
+          console.log(`components-candidates-to-close-issue: ${componentsCandidatesToCloseIssueSerialized}`);
 
           core.setOutput('components-candidates-to-create-issue', componentsCandidatesToCreateIssueSerialized);
           core.setOutput('components-to-update-existing-issue', componentsToUpdateExistingIssueSerialized);
           core.setOutput('removed-components', removedComponentsSerialized);
           core.setOutput('recovered-components', recoveredComponentsSerialized);
           core.setOutput('drifting-components', driftingComponentsSerialized);
+          core.setOutput('components-candidates-to-close-issue', componentsCandidatesToCloseIssueSerialized);
 
     - name: Close Issues
       uses: actions/github-script@v6
@@ -258,10 +264,11 @@ runs:
           const assigneeUsers = "${{ inputs.assignee-users }}";
           const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
           const componentsCandidatesToCreateIssue = JSON.parse('${{ steps.triage.outputs.components-candidates-to-create-issue }}', 'utf8');
+          const componentsCandidatesToCloseIssue = JSON.parse('${{ steps.triage.outputs.components-candidates-to-close-issue }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
-          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - (Object.keys(componentsToIssues).length - removedComponents.length - recoveredComponents.length));
+          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
           const componentsToNewlyCreatedIssues = {};
 
           const issueLabels = "${{ inputs.issue-labels }}"
