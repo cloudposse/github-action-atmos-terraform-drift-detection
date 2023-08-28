@@ -79,108 +79,66 @@ There is another companion action [github-action-atmos-terraform-drift-remediati
 ### Workflow example
 
 ```yaml
-name: 👽 Atmos Terraform Drift Detection
-run-name: 👽 Atmos Terraform Drift Detection
+  name: 👽 Atmos Terraform Drift Detection
 
-on:
-  schedule:
-    - cron: "0 * * * *"
+  on:
+    schedule:
+      - cron: "0 * * * *"
 
-permissions:
-  id-token: write
-  contents: read
+  permissions:
+    id-token: write
+    contents: write
+    issues: write
 
-jobs:
-  select-components:
-    runs-on: ubuntu-latest
-    name: Select Components
-    outputs:
-      matrix: ${{ steps.components.outputs.matrix }}
-    steps:
-      - name: Selected Components
-        id: components
-        uses: cloudposse/github-action-atmos-terraform-select-components@v1
-        with:
-          jq-query: 'to_entries[] | .key as $parent | .value.components.terraform | to_entries[] | select(.value.settings.github.actions_enabled // false) | [$parent, .key] | join(",")'
+  jobs:
+    select-components:
+      runs-on: ubuntu-latest
+      name: Select Components
+      outputs:
+        matrix: ${{ steps.components.outputs.matrix }}
+      steps:
+        - name: Selected Components
+          id: components
+          uses: cloudposse/github-action-atmos-terraform-select-components@v0
+          with:
+            jq-query: 'to_entries[] | .key as $parent | .value.components.terraform | to_entries[] | select(.value.settings.github.actions_enabled // false) | [$parent, .key] | join(",")'
+            debug: ${{ env.DEBUG_ENABLED }}
 
-  plan-atmos-components:
-    needs:
-      - select-components
-    runs-on: ubuntu-latest
-    if: ${{ needs.select-components.outputs.matrix != '{"include":[]}' }}
-    strategy:
-      fail-fast: false # Don't fail fast to avoid locking TF State
-      matrix: ${{ fromJson(needs.select-components.outputs.matrix) }}
-    name: ${{ matrix.stack_slug }}
-    steps:
-      - name: Plan Atmos Component
-        id: atmos-plan
-        uses: cloudposse/github-action-atmos-terraform-plan@v1
-        with:
-          component: ${{ matrix.component }}
-          stack: ${{ matrix.stack }}
-          component-path: ${{ matrix.component_path }}
-          drift-detection-mode-enabled: "true"
-          terraform-plan-role: "arn:aws:iam::111111111111:role/acme-core-gbl-identity-gitops"
-          terraform-state-bucket: "acme-core-ue2-auto-gitops"
-          terraform-state-role: "arn:aws:iam::999999999999:role/acme-core-ue2-auto-gitops-gha"
-          terraform-state-table: "acme-core-ue2-auto-gitops"
-          aws-region: "us-east-2"
+    plan-atmos-components:
+      needs:
+        - select-components
+      runs-on: ubuntu-latest
+      if: ${{ needs.select-components.outputs.matrix != '{"include":[]}' }}
+      strategy:
+        fail-fast: false # Don't fail fast to avoid locking TF State
+        matrix: ${{ fromJson(needs.select-components.outputs.matrix) }}
+      name: ${{ matrix.stack_slug }}
+      env:
+        GITHUB_TOKEN: "${{ github.token }}"
+      steps:
+        - name: Plan Atmos Component
+          id: atmos-plan
+          uses: cloudposse/github-action-atmos-terraform-plan@v0
+          with:
+            component: ${{ matrix.component }}
+            stack: ${{ matrix.stack }}
+            component-path: ${{ matrix.component_path }}
+            drift-detection-mode-enabled: "true"
+            terraform-plan-role: "arn:aws:iam::111111111111:role/acme-core-gbl-identity-gitops"
+            terraform-state-bucket: "acme-core-ue2-auto-gitops"
+            terraform-state-role: "arn:aws:iam::999999999999:role/acme-core-ue2-auto-gitops-gha"
+            terraform-state-table: "acme-core-ue2-auto-gitops"
+            aws-region: "us-east-2"
 
-  drift-detection:
-    needs:
-      - plan-atmos-components
-    runs-on: ubuntu-latest
-    outputs:
-      components-with-issues: ${{ steps.drift-detection.outputs.components-with-issues }}
-      components-without-issues: ${{ steps.drift-detection.outputs.components-without-issues }}
-    steps:
-      - name: Drift Detection
-        id: drift-detection
-        uses: cloudposse/github-action-atmos-terraform-drift-detection@v1
-        with:
-          mode: 'triage'
-          max-opened-issues: '3'
-
-  create-gh-issues:
-    needs:
-      - drift-detection
-    runs-on: ubuntu-latest
-    if: ${{ needs.drift-detection.outputs.components-without-issues != '{"include":[]}' }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.drift-detection.outputs.components-without-issues) }}
-    name: ${{ matrix.stackSlug }}
-    steps:
-      - name: Drift Detection
-        uses: cloudposse/github-action-atmos-terraform-drift-detection@v1
-        with:
-          mode: 'create-gh-issue'
-          component: ${{ matrix.component }}
-          stack: ${{ matrix.stack }}
-          component-path: ${{ matrix.componentPath }}
-          issue-title: ${{ matrix.issueTitle }}
-          issue-description: ${{ matrix.issueDescription }}
-
-  update-gh-issues:
-    needs:
-      - drift-detection
-    runs-on: ubuntu-latest
-    if: ${{ needs.drift-detection.outputs.components-with-issues != '{"include":[]}' }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.drift-detection.outputs.components-with-issues) }}
-    name: ${{ matrix.stackSlug }}
-    steps:
-      - name: Drift Detection
-        uses: cloudposse/github-action-atmos-terraform-drift-detection@v1
-        with:
-          mode: 'update-gh-issue'
-          component: ${{ matrix.component}}
-          stack: ${{ matrix.stack }}
-          issue-number: ${{ matrix.issueNumber }}
-          issue-description: ${{ matrix.issueDescription }}
-          component-path: ${{ matrix.componentPath }}
+    drift-detection:
+      needs:
+        - plan-atmos-components
+      runs-on: ubuntu-latest
+      steps:
+        - name: Drift Detection
+          uses: cloudposse/github-action-atmos-terraform-drift-detection@v0
+          with:
+            max-opened-issues: '3'
 ```
 
 
@@ -194,27 +152,14 @@ jobs:
 
 | Name | Description | Default | Required |
 |------|-------------|---------|----------|
-| action | Drift detection action. One of ['triage','create-gh-issue','update-gh-issue'] | N/A | true |
-| assignee-teams | Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only for action 'create-gh-issue' |  | false |
-| assignee-users | Comma-separated list of users to assign issues to. This is used only for action 'create-gh-issue' |  | false |
-| component | The name of the component to plan. | N/A | false |
-| component-path | The path to the base component. Atmos defines this value as component\_path. | N/A | false |
+| assignee-teams | Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only when issue is getting created. |  | false |
+| assignee-users | Comma-separated list of users to assign issues to. This is used only when issue is getting created. |  | false |
 | debug | Enable action debug mode. Default: false | false | false |
-| issue-description | Issue description | N/A | false |
 | issue-labels | Comma separated list of labels to add to the drift issues. Default: drift | drift | false |
-| issue-number | Issue number | N/A | false |
-| issue-title | Issue title | N/A | false |
 | max-opened-issues | Number of open drift detection issues. Use `-1` to open unlimited number of issues. Default: 10 | 10 | false |
-| stack | The stack name for the given component. | N/A | false |
 | token | Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically not supplied by the user. When running this action on github.com, the default value is sufficient. When running on GHES, you can pass a personal access token for github.com if you are experiencing rate limiting. | ${{ github.server\_url == 'https://github.com' && github.token \|\| '' }} | false |
 
 
-## Outputs
-
-| Name | Description |
-|------|-------------|
-| components-with-issues | A matrix for components that have issues |
-| components-without-issues | A matrix for components that do not have issues |
 <!-- markdownlint-restore -->
 
 
