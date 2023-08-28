@@ -309,6 +309,9 @@ runs:
             }
           }
 
+          const usersSerialized = JSON.stringify(users);
+          console.log(`users: ${usersSerialized}`);
+
           for (let i = 0; i < numOfIssuesToCreate; i++) {
             const slug = componentsCandidatesToCreateIssue[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
