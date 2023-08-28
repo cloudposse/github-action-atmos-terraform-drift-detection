@@ -252,6 +252,10 @@ runs:
           const fs = require('fs');
 
           const repository = context.repo;
+          const orgName = context.repo.owner;
+          const repo = context.repo.repo;
+          const assigneeTeams = "${{ inputs.assignee-teams }}";
+          const assigneeUsers = "${{ inputs.assignee-users }}";
           const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
           const componentsCandidatesToCreateIssue = JSON.parse('${{ steps.triage.outputs.components-candidates-to-create-issue }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
@@ -262,6 +266,35 @@ runs:
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
+
+          function csvToArray(csvString) {
+            return csvString
+                .split(',')
+                .map((item) => item.trim())
+                .filter((item) => item !== '');
+          }
+
+          let teams = csvToArray(assigneeTeams);
+          let users = csvToArray(assigneeUsers);
+
+          if (teams.length === 0 && users.length === 0) {
+            console.log("No users to assign issue with. Skipping ...");
+          } else {
+            let usersFromTeams = [];
+
+            for (let i = 0; i < teams.length; i++) {
+                const response = await github.rest.teams.listMembersInOrg({
+                  org: orgName,
+                  team_slug: teams[i]
+                });
+
+                const usersForCurrentTeam = response.data.map(user => user.login);
+                usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+            }
+
+            users = users.concat(usersFromTeams);
+            users = [...new Set(users)]; // get unique set
+          }
 
           for (let i = 0; i < numberOfIssuesToCreate; i++) {
             const slug = componentsCandidatesToCreateIssue[i];
@@ -282,6 +315,18 @@ runs:
             console.log(`Created new issue with number: ${issueNumber}`);
 
             core.setOutput('issue-number', issueNumber);
+
+            if (users.size > 0) {
+              try {
+                await github.rest.issues.addAssignees({
+                  ...repository,
+                  issue_number: issueNumber,
+                  assignees: users
+                });
+              } catch (error) {
+                core.error(`Failed to associate user to an issue. Error ${error.message}`);
+              }
+            }
           }
 
           const componentsToNewlyCreatedIssuesSerialized = JSON.stringify(componentsToNewlyCreatedIssues);
@@ -391,55 +436,3 @@ runs:
 
             await core.summary.addRaw(content).write();
           }
-
-    # - name: Assign Issue to User and/or Teams
-    #   uses: actions/github-script@v6
-    #   if: env.ACTION == 'create-gh-issue'
-    #   with:
-    #     github-token: ${{ inputs.token }}
-    #     script: |
-    #       const assigneeTeams = "${{ inputs.assignee-teams }}";
-    #       const assigneeUsers = "${{ inputs.assignee-users }}";
-
-    #       function csvToArray(csvString) {
-    #         return csvString
-    #             .split(',')
-    #             .map((item) => item.trim())
-    #             .filter((item) => item !== '');
-    #       }
-
-    #       let teams = csvToArray(assigneeTeams);
-    #       let users = csvToArray(assigneeUsers);
-
-    #       if (teams.length === 0 && users.length === 0) {
-    #         console.log("No users to assign issue with. Skipping ...");
-    #         return;
-    #       }
-
-    #       const repository = context.repo;
-    #       const orgName = context.repo.owner;
-    #       const repo = context.repo.repo;
-    #       const issueNumber = parseInt("${{ steps.create-issue.outputs.issue-number }}", 10);
-
-    #       console.log(`${orgName}/${repo}`);
-
-    #       let usersFromTeams = [];
-
-    #       for (let i = 0; i < teams.length; i++) {
-    #           const response = await github.rest.teams.listMembersInOrg({
-    #             org: orgName,
-    #             team_slug: teams[i]
-    #           });
-
-    #           const usersForCurrentTeam = response.data.map(user => user.login);
-    #           usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
-    #       }
-
-    #       users = users.concat(usersFromTeams);
-    #       users = [...new Set(users)]; // get unique set
-
-    #       await github.rest.issues.addAssignees({
-    #         ...repository,
-    #         issue_number: issueNumber,
-    #         assignees: users
-    #       });
