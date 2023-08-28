@@ -31,13 +31,6 @@ inputs:
       not supplied by the user. When running this action on github.com, the default value is sufficient. When running on
       GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
     default: ${{ github.server_url == 'https://github.com' && github.token || '' }}
-outputs:
-  components-with-issues:
-    description: A matrix for components that have issues
-    value: ${{ steps.lookup-issues.outputs.components-with-issues }}
-  components-without-issues:
-    description: A matrix for components that do not have issues
-    value: ${{ steps.lookup-issues.outputs.components-without-issues }}
 
 runs:
   using: "composite"
@@ -55,7 +48,7 @@ runs:
         script: |
           const repository = context.repo;
 
-          let per_page = 100; // Max allowed value
+          let per_page = 100; // Max allowed value per page
           let page = 1;
           let componentsToIssues = {};
           let componentsToMetadata = {};
@@ -99,13 +92,13 @@ runs:
           const componentsToIssuesSerialized = JSON.stringify(componentsToIssues);
           const componentsToMetadataSerialized = JSON.stringify(componentsToMetadata);
 
-          console.log(`Components to Issues Map: ${componentsToIssuesSerialized}`);
-          console.log(`Components to Metadata Map: ${componentsToMetadataSerialized}`);
+          console.log(`components-to-issues: ${componentsToIssuesSerialized}`);
+          console.log(`components-to-metadata: ${componentsToMetadataSerialized}`);
 
-          core.setOutput("components-to-issues-map", componentsToIssuesSerialized);
-          core.setOutput("components-to-metadata-map", componentsToMetadataSerialized);
+          core.setOutput("components-to-issues", componentsToIssuesSerialized);
+          core.setOutput("components-to-metadata", componentsToMetadataSerialized);
 
-    - name: Read Metadata From Artifacts
+    - name: Read Metadata From Plan Artifacts
       id: metadata-from-artifacts
       uses: actions/github-script@v6
       with:
@@ -137,8 +130,8 @@ runs:
           console.log(`Components to State Map: ${componentsToStateSerialized}`);
           console.log(`Components to Metadata Map: ${componentsToMetadataSerialized}`);
 
-          core.setOutput("components-to-state-map", componentsToStateSerialized);
-          core.setOutput("components-to-metadata-map", componentsToMetadataSerialized);
+          core.setOutput("components-to-state", componentsToStateSerialized);
+          core.setOutput("components-to-metadata", componentsToMetadataSerialized);
 
     - name: Triage
       id: triage
@@ -146,34 +139,34 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
-          const componentsToMetadataMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-metadata-map }}', 'utf8');
-          const componentsToStateMap = JSON.parse('${{ steps.metadata-from-artifacts.outputs.components-to-state-map }}', 'utf8');
+          const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
+          const componentsToMetadata = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-metadata }}', 'utf8');
+          const componentsToState = JSON.parse('${{ steps.metadata-from-artifacts.outputs.components-to-state }}', 'utf8');
 
-          let slugs = new Set([...Object.keys(componentsToIssuesMap), ...Object.keys(componentsToStateMap)]);
+          let slugs = new Set([...Object.keys(componentsToIssues), ...Object.keys(componentsToState)]);
 
-          const componentsToCreateIssues = [];
-          const componentsToUpdateIssues = [];
+          const componentsCandidatesToCreateIssue = [];
+          const componentsToUpdateExistingIssue = [];
           const removedComponents = [];
           const recoveredComponents = [];
           const driftingComponents = [];
 
           for (let slug of slugs) {
-            if (componentsToIssuesMap.hasOwnProperty(slug)) {
-              const issueNumber = componentsToIssuesMap[slug];
+            if (componentsToIssues.hasOwnProperty(slug)) {
+              const issueNumber = componentsToIssues[slug];
 
-              if (componentsToStateMap.hasOwnProperty(slug)) {
-                const drifted = componentsToStateMap[slug];
+              if (componentsToState.hasOwnProperty(slug)) {
+                const drifted = componentsToState[slug];
 
                 if (drifted) {
-                  const commitSHA = componentsToMetadataMap[slug].commitSHA;
+                  const commitSHA = componentsToMetadata[slug].commitSHA;
                   const currentSHA = "${{ github.sha }}";
                   if (currentSHA === commitSHA) {
                     console.log(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
                     driftingComponents.push(slug);
                   } else {
                     console.log(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
-                    componentsToUpdateIssues.push(slug);
+                    componentsToUpdateExistingIssue.push(slug);
                     driftingComponents.push(slug);
                   }
                 } else {
@@ -185,11 +178,11 @@ runs:
                 removedComponents.push(slug);
               }
             } else {
-              const drifted = componentsToStateMap[slug];
+              const drifted = componentsToState[slug];
 
               if (drifted) {
                 console.log(`Component "${slug}" drifted. New issue has to be created.`);
-                componentsToCreateIssues.push(slug);
+                componentsCandidatesToCreateIssue.push(slug);
                 driftingComponents.push(slug);
               } else {
                 console.log(`Component "${slug}" is not drifting. Skipping ...`);
@@ -197,20 +190,20 @@ runs:
             }
           }
 
-          const componentsToCreateIssuesSerialized = JSON.stringify(componentsToCreateIssues);
-          const componentsToUpdateIssuesSerialized = JSON.stringify(componentsToUpdateIssues);
+          const componentsCandidatesToCreateIssueSerialized = JSON.stringify(componentsCandidatesToCreateIssue);
+          const componentsToUpdateExistingIssueSerialized = JSON.stringify(componentsToUpdateExistingIssue);
           const removedComponentsSerialized = JSON.stringify(removedComponents);
           const recoveredComponentsSerialized = JSON.stringify(recoveredComponents);
           const driftingComponentsSerialized = JSON.stringify(driftingComponents);
 
-          console.log(`components-to-create-issues: ${componentsToCreateIssuesSerialized}`);
-          console.log(`components-to-update-issues: ${componentsToUpdateIssuesSerialized}`);
+          console.log(`components-candidates-to-create-issue: ${componentsCandidatesToCreateIssueSerialized}`);
+          console.log(`components-to-update-existing-issue: ${componentsToUpdateExistingIssueSerialized}`);
           console.log(`removed-components: ${removedComponentsSerialized}`);
           console.log(`recovered-components: ${recoveredComponentsSerialized}`);
           console.log(`drifting-components: ${driftingComponentsSerialized}`);
 
-          core.setOutput('components-to-create-issues', componentsToCreateIssuesSerialized);
-          core.setOutput('components-to-update-issues', componentsToUpdateIssuesSerialized);
+          core.setOutput('components-candidates-to-create-issue', componentsCandidatesToCreateIssueSerialized);
+          core.setOutput('components-to-update-existing-issue', componentsToUpdateExistingIssueSerialized);
           core.setOutput('removed-components', removedComponentsSerialized);
           core.setOutput('recovered-components', recoveredComponentsSerialized);
           core.setOutput('drifting-components', driftingComponentsSerialized);
@@ -220,7 +213,7 @@ runs:
       with:
         github-token: ${{ inputs.token }}
         script: |
-          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
           const componentsToCloseIssuesFor = removedComponents.concat(recoveredComponents);
@@ -229,7 +222,7 @@ runs:
 
           for (let i = 0; i < componentsToCloseIssuesFor.length; i++) {
             const slug = componentsToCloseIssuesFor[i];
-            const issueNumber = componentsToIssuesMap[slug];
+            const issueNumber = componentsToIssues[slug];
 
             github.rest.issues.update({
               ...repository,
@@ -259,19 +252,19 @@ runs:
           const fs = require('fs');
 
           const repository = context.repo;
-          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
-          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
+          const componentsCandidatesToCreateIssue = JSON.parse('${{ steps.triage.outputs.components-candidates-to-create-issue }}', 'utf8');
           const maxOpenedIssues = parseInt("${{ inputs.max-opened-issues }}", 10);
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
-          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - (Object.keys(componentsToIssuesMap).length - removedComponents.length - recoveredComponents.length));
+          const numberOfIssuesToCreate = Math.max(0, maxOpenedIssues - (Object.keys(componentsToIssues).length - removedComponents.length - recoveredComponents.length));
           const componentsToNewlyCreatedIssues = {};
 
           const issueLabels = "${{ inputs.issue-labels }}"
           const labels = issueLabels.split(",").map(item => item.trim()).filter(item => item != null && item !== "");
 
           for (let i = 0; i < numberOfIssuesToCreate; i++) {
-            const slug = componentsToCreateIssues[i];
+            const slug = componentsCandidatesToCreateIssue[i];
             const issueTitle = `Drift Detected in \`${slug}\``;
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
             
@@ -304,15 +297,15 @@ runs:
         script: |
           const fs = require('fs');
 
-          const componentsToUpdateIssues = JSON.parse('${{ steps.triage.outputs.components-to-update-issues }}', 'utf8');
-          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToUpdateExistingIssue = JSON.parse('${{ steps.triage.outputs.components-to-update-existing-issue }}', 'utf8');
+          const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
 
           const repository = context.repo;
 
-          for (let i = 0; i < componentsToUpdateIssues.length; i++) {
-            const slug = componentsToUpdateIssues[i];
+          for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
+            const slug = componentsToUpdateExistingIssue[i];
             const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
-            const issueNumber = componentsToIssuesMap[slug];
+            const issueNumber = componentsToIssues[slug];
 
             github.rest.issues.update({
               ...repository,
@@ -331,9 +324,9 @@ runs:
           const orgName = context.repo.owner;
           const repo = context.repo.repo;
 
-          const componentsToIssuesMap = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues-map }}', 'utf8');
+          const componentsToIssues = JSON.parse('${{ steps.drift-detection-issues.outputs.components-to-issues }}', 'utf8');
           const componentsToNewlyCreatedIssues = JSON.parse('${{ steps.create-issues.outputs.components-to-newly-created-issues }}', 'utf8');
-          const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const componentsCandidatesToCreateIssue = JSON.parse('${{ steps.triage.outputs.components-candidates-to-create-issue }}', 'utf8');
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
           const driftingComponents = JSON.parse('${{ steps.triage.outputs.drifting-components }}', 'utf8');
@@ -346,8 +339,8 @@ runs:
             table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
-          for (let i = 0; i < componentsToCreateIssues.length; i++) {
-            const slug = componentsToCreateIssues[i];
+          for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
+            const slug = componentsCandidatesToCreateIssue[i];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
               table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
@@ -356,23 +349,23 @@ runs:
 
           for (let i = 0; i < removedComponents.length; i++) {
             const slug = removedComponents[i];
-            const issueNumber = componentsToIssuesMap[slug];
+            const issueNumber = componentsToIssues[slug];
 
             table.push([`<pre>${slug}</pre>`, "REMOVED", `Component was removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < recoveredComponents.length; i++) {
             const slug = recoveredComponents[i];
-            const issueNumber = componentsToIssuesMap[slug];
+            const issueNumber = componentsToIssues[slug];
 
             table.push([`<pre>${slug}</pre>`, "RECOVERED", `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < driftingComponents.length; i++) {
             const slug = driftingComponents[i];
-            const issueNumber = componentsToIssuesMap[slug];
+            const issueNumber = componentsToIssues[slug];
 
-            if (componentsToCreateIssues.indexOf(slug) === -1) {
+            if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
               table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
             }
           }
