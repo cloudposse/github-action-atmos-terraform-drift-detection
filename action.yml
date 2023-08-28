@@ -332,7 +332,7 @@ runs:
 
             core.setOutput('issue-number', issueNumber);
 
-            if (users.size > 0) {
+            if (users.length > 0) {
               try {
                 await github.rest.issues.addAssignees({
                   ...repository,
