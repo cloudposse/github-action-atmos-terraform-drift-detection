@@ -280,20 +280,25 @@ runs:
           if (teams.length === 0 && users.length === 0) {
             console.log("No users to assign issue with. Skipping ...");
           } else {
-            let usersFromTeams = [];
+            try {
+              let usersFromTeams = [];
 
-            for (let i = 0; i < teams.length; i++) {
-                const response = await github.rest.teams.listMembersInOrg({
-                  org: orgName,
-                  team_slug: teams[i]
-                });
+              for (let i = 0; i < teams.length; i++) {
+                  const response = await github.rest.teams.listMembersInOrg({
+                    org: orgName,
+                    team_slug: teams[i]
+                  });
 
-                const usersForCurrentTeam = response.data.map(user => user.login);
-                usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+                  const usersForCurrentTeam = response.data.map(user => user.login);
+                  usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+              }
+
+              users = users.concat(usersFromTeams);
+              users = [...new Set(users)]; // get unique set
+            } catch (error) {
+              core.error(`Failed to associate user to an issue. Error ${error.message}`);
+              users = [];
             }
-
-            users = users.concat(usersFromTeams);
-            users = [...new Set(users)]; // get unique set
           }
 
           for (let i = 0; i < numberOfIssuesToCreate; i++) {
