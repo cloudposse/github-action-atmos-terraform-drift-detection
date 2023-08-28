@@ -336,7 +336,7 @@ runs:
           const componentsToCreateIssues = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
           const removedComponents = JSON.parse('${{ steps.triage.outputs.removed-components }}', 'utf8');
           const recoveredComponents = JSON.parse('${{ steps.triage.outputs.recovered-components }}', 'utf8');
-          const newComponents = JSON.parse('${{ steps.triage.outputs.components-to-create-issues }}', 'utf8');
+          const driftingComponents = JSON.parse('${{ steps.triage.outputs.drifting-components }}', 'utf8');
 
           const table = [[{data: 'Component', header: true}, {data: 'State', header: true}, {data: 'Comments', header: true}]];
 
@@ -368,11 +368,11 @@ runs:
             table.push([`<pre>${slug}</pre>`, "RECOVERED", `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
-          for (let i = 0; i < newComponents.length; i++) {
-            const slug = newComponents[i];
+          for (let i = 0; i < driftingComponents.length; i++) {
+            const slug = driftingComponents[i];
             const issueNumber = componentsToIssuesMap[slug];
 
-            if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
+            if (componentsToCreateIssues.indexOf(slug) === -1) {
               table.push([`<pre>${slug}</pre>`, "DRIFTED", `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
             }
           }
