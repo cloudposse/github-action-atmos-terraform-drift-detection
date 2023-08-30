@@ -24,7 +24,7 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     let isContinue = true;
 
     while (isContinue) {
-      const response = await octokit.issues.listForRepo({
+      const response = await octokit.rest.issues.listForRepo({
         ...repository,
         state: 'open',
         per_page,
