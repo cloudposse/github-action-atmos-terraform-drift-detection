@@ -62,6 +62,8 @@ const readMetadataFromPlanArtifacts = async () => {
     let componentsToMetadata = {};
 
     for (let i = 0; i < metadataFiles.length; i++) {
+        core.info(`Reading metadata from ${metadataFiles[i]}`);
+
         const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
         const slug = `${metadata.stack}-${metadata.component}`;
