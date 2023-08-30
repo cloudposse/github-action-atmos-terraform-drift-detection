@@ -13,11 +13,8 @@ try {
     // Get octokit
     const octokit = github.getOctokit(token);
 
-    // Get context
-    const contextPayload = github.context.payload;
-
     // Run action
-    runAction(octokit, contextPayload, {
+    runAction(octokit, github.context, {
         maxOpenedIssues,
         assigneeUsers,
         assigneeTeams

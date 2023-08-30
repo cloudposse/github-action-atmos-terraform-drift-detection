@@ -19,13 +19,13 @@ const parseIntInput = (valueString, defaultValue = 0) => {
     return value;
 };
 
-const downloadArtifacts = () => {
+const downloadArtifacts = (artifactName) => {
     try {
         const artifactClient = artifact.create()
-        const artifactName = 'metadata';
+        const downloadDirectory = '.'
     
         // Downloading the artifact
-        const downloadResponse = artifactClient.downloadArtifact(artifactName, __dirname);
+        const downloadResponse = artifactClient.downloadArtifact(artifactName, downloadDirectory);
 
         core.info(`Artifact ${artifactName} downloaded to ${downloadResponse.downloadPath}`);
       } catch (error) {
