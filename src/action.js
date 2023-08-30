@@ -273,7 +273,7 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
     }
 }
 
-const postDriftDetectionSummary = async (octokit, context, runId, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
+const postDriftDetectionSummary = async (context, runId, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
     const orgName = context.repo.owner;
     const repo = context.repo.repo;
 
@@ -326,6 +326,16 @@ const postDriftDetectionSummary = async (octokit, context, runId, maxOpenedIssue
     }
 }
 
+const postStepSummaries = async (driftingComponents) => {
+    for (let i = 0; i < driftingComponents.length; i++) {
+      const slug = driftingComponents[i];
+      const file = `step-summary-${slug}.md`;
+      const content = fs.readFileSync(file, 'utf-8');
+
+      await core.summary.addRaw(content).write();
+    }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -367,7 +377,9 @@ const runAction = async (octokit, context, parameters) => {
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
-    await postDriftDetectionSummary(octokit, context, runId, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
+    await postDriftDetectionSummary(context, runId, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
+
+    await postStepSummaries();
 };
 
 module.exports = {
