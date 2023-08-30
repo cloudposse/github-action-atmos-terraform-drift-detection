@@ -70,7 +70,7 @@ const runAction = async (octokit, context, parameters) => {
 
     downloadArtifacts("metadata");
 
-    const openGitHubIssuesToComponents = mapOpenGitHubIssuesToComponents(octokit, context);
+    const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
     const componentsToIssues = openGitHubIssuesToComponents.componentsToIssues;
     const componentsToMetadata = openGitHubIssuesToComponents.componentsToMetadata;
 
