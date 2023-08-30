@@ -378,7 +378,7 @@ const runAction = async (octokit, context, parameters) => {
 
     await postDriftDetectionSummary(context, runId, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
 
-    await postStepSummaries();
+    await postStepSummaries(driftingComponents);
 };
 
 module.exports = {
