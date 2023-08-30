@@ -255,6 +255,24 @@ const createIssues = async (octokit, context, maxOpenedIssues, users, components
     return componentsToNewlyCreatedIssues;
 }
 
+const updateIssues = async (octokit, context, componentsToIssues, componentsToUpdateExistingIssue) => {
+    const repository = context.repo;
+
+    for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
+      const slug = componentsToUpdateExistingIssue[i];
+      const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
+      const issueNumber = componentsToIssues[slug];
+
+      octokit.rest.issues.update({
+        ...repository,
+        issue_number: issueNumber,
+        body: issueDescription
+      });
+
+      core.info(`Updated issue: ${issueNumber}`);
+    }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -279,7 +297,7 @@ const runAction = async (octokit, context, parameters) => {
 
     const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
     const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
-    // const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
+    const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
     const removedComponents = triageResults.removedComponents;
     const recoveredComponents = triageResults.recoveredComponents;
     // const driftingComponents = triageResults.driftingComponents;
@@ -292,6 +310,8 @@ const runAction = async (octokit, context, parameters) => {
     users = [...new Set(users)]; // get unique set
 
     await createIssues(octokit, context, maxOpenedIssues, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
+
+    await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 };
 
 module.exports = {
