@@ -397,14 +397,14 @@ runs:
           for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
             const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-            table.push([`<pre>${slug}</pre>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+            table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${{ github.run_id }}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
             const slug = componentsCandidatesToCreateIssue[i];
 
             if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-              table.push([`<pre>${slug}</pre>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
+              table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${{ github.run_id }}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue was not created because maximum number of created issues ${{ inputs.max-opened-issues }} reached`]);
             }
           }
 
@@ -412,14 +412,14 @@ runs:
             const slug = removedComponents[i];
             const issueNumber = componentsToIssues[slug];
 
-            table.push([`<pre>${slug}</pre>`, '<img src="https://shields.io/badge/REMOVED-grey?style=for-the-badge"/>', `Component has been removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+            table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${{ github.run_id }}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/REMOVED-grey?style=for-the-badge"/>', `Component has been removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < recoveredComponents.length; i++) {
             const slug = recoveredComponents[i];
             const issueNumber = componentsToIssues[slug];
 
-            table.push([`<pre>${slug}</pre>`, '<img src="https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+            table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${{ github.run_id }}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
           }
 
           for (let i = 0; i < driftingComponents.length; i++) {
@@ -427,7 +427,7 @@ runs:
             const issueNumber = componentsToIssues[slug];
 
             if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-              table.push([`<pre>${slug}</pre>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+              table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${{ github.run_id }}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
             }
           }
 
