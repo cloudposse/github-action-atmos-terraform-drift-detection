@@ -3,7 +3,7 @@ const {
     downloadArtifacts,
 } = require('./utils');
 
-const getMetadataFromIssueBody = (body) {
+const getMetadataFromIssueBody = (body) => {
     const regex = /```json\s([\s\S]+?)\s```/;
     const matched = body.match(regex);
 
