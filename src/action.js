@@ -1,8 +1,20 @@
 const fs = require('fs');
 const core = require('@actions/core');
-const {
-    downloadArtifacts,
-} = require('./utils');
+const artifact = require('@actions/artifact');
+
+const downloadArtifacts = async (artifactName) => {
+    try {
+        const artifactClient = artifact.create()
+        const downloadDirectory = '.'
+    
+        // Downloading the artifact
+        const downloadResponse = artifactClient.downloadArtifact(artifactName, downloadDirectory);
+
+        core.info(`Artifact ${artifactName} downloaded to ${downloadResponse.downloadPath}`);
+      } catch (error) {
+        throw new Error(`Failed to download artifacts: ${error.message}`);
+      }
+};
 
 const getMetadataFromIssueBody = (body) => {
     const regex = /```json\s([\s\S]+?)\s```/;
@@ -157,7 +169,7 @@ const runAction = async (octokit, context, parameters) => {
         assigneeTeams = []
     } = parameters;
 
-    downloadArtifacts("metadata");
+    await downloadArtifacts("metadata");
 
     const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
     const componentsToIssueNumber = openGitHubIssuesToComponents.componentsToIssues;

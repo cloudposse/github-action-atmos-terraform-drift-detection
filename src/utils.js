@@ -1,6 +1,3 @@
-const artifact = require('@actions/artifact');
-const core = require('@actions/core');
-
 const parseCsvInput = (valueString) => {
     return valueString
         .split(',')
@@ -19,22 +16,7 @@ const parseIntInput = (valueString, defaultValue = 0) => {
     return value;
 };
 
-const downloadArtifacts = (artifactName) => {
-    try {
-        const artifactClient = artifact.create()
-        const downloadDirectory = '.'
-    
-        // Downloading the artifact
-        const downloadResponse = artifactClient.downloadArtifact(artifactName, downloadDirectory);
-
-        core.info(`Artifact ${artifactName} downloaded to ${downloadResponse.downloadPath}`);
-      } catch (error) {
-        throw new Error(`Failed to download artifacts: ${error.message}`);
-      }
-};
-
 module.exports = {
     parseCsvInput,
-    parseIntInput,
-    downloadArtifacts,
+    parseIntInput
 };
