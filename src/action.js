@@ -183,6 +183,78 @@ const closeIssues = async (octokit, context, componentsToIssueNumber, removedCom
     }
 }
 
+const convertTeamsToUsers = async (octokit, orgName, teams) => {
+    let users = [];
+
+    if (teams.length === 0) {
+        console.log("No users to assign issue with. Skipping ...");
+    } else {
+        try {
+            let usersFromTeams = [];
+
+            for (let i = 0; i < teams.length; i++) {
+                const response = await octokit.rest.teams.listMembersInOrg({
+                    org: orgName,
+                    team_slug: teams[i]
+                });
+
+                const usersForCurrentTeam = response.data.map(user => user.login);
+                usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+            }
+
+            users = users.concat(usersFromTeams);
+            users = [...new Set(users)]; // get unique set
+        } catch (error) {
+            core.error(`Failed to associate user to an issue. Error ${error.message}`);
+            users = [];
+        }
+    }
+
+    return users;
+}
+
+const createIssues = async (octokit, context, maxOpenedIssues, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue) => {
+    const repository = context.repo;
+    const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
+    const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
+    const componentsToNewlyCreatedIssues = {};
+
+    for (let i = 0; i < numOfIssuesToCreate; i++) {
+        const slug = componentsCandidatesToCreateIssue[i];
+        const issueTitle = `Drift Detected in \`${slug}\``;
+        const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
+    
+        const newIssue = await octokit.rest.issues.create({
+            ...repository,
+            title: issueTitle,
+            body: issueDescription,
+            labels: "drift"
+        });
+
+        const issueNumber = newIssue.data.number;
+
+        componentsToNewlyCreatedIssues[slug] = issueNumber;
+
+        core.info(`Created new issue with number: ${issueNumber}`);
+
+        core.setOutput('issue-number', issueNumber);
+
+        if (users.length > 0) {
+            try {
+                await octokit.rest.issues.addAssignees({
+                    ...repository,
+                    issue_number: issueNumber,
+                    assignees: users
+                });
+            } catch (error) {
+                core.error(`Failed to associate user to an issue. Error ${error.message}`);
+            }
+        }
+    }
+
+    return componentsToNewlyCreatedIssues;
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -203,17 +275,23 @@ const runAction = async (octokit, context, parameters) => {
 
     const metadataFromPlanArtifacts = await readMetadataFromPlanArtifacts();
     const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
-    const componentsToPlanMetadata = metadataFromPlanArtifacts.componentsToMetadata;
+    // const componentsToPlanMetadata = metadataFromPlanArtifacts.componentsToMetadata;
 
     const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
     const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
-    const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
+    // const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
     const removedComponents = triageResults.removedComponents;
     const recoveredComponents = triageResults.recoveredComponents;
-    const driftingComponents = triageResults.driftingComponents;
+    // const driftingComponents = triageResults.driftingComponents;
     const componentsCandidatesToCloseIssue = triageResults.componentsCandidatesToCloseIssue;
 
     await closeIssues(octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents);
+
+    const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
+    let users = assigneeUsers.concat(usersFromTeams);
+    users = [...new Set(users)]; // get unique set
+
+    await createIssues(octokit, context, maxOpenedIssues, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
 };
 
 module.exports = {
