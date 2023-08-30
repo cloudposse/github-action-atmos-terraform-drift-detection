@@ -1,4 +1,4 @@
-const { artifact } = require('@actions/artifact');
+const artifact = require('@actions/artifact');
 const core = require('@actions/core');
 
 const parseCsvInput = (valueString) => {
@@ -21,7 +21,7 @@ const parseIntInput = (valueString, defaultValue = 0) => {
 
 const downloadArtifacts = () => {
     try {
-        const artifactClient = artifact();
+        const artifactClient = artifact.create()
         const artifactName = 'metadata';
     
         // Downloading the artifact
