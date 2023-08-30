@@ -74,20 +74,13 @@ const readMetadataFromPlanArtifacts = async () => {
     let componentsToMetadata = {};
 
     for (let i = 0; i < metadataFiles.length; i++) {
-        core.info(`Reading metadata from ${metadataFiles[i]}`);
-        try {
-            const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
+        const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
-            const slug = `${metadata.stack}-${metadata.component}`;
-            const drifted = metadata.drifted;
-    
-            componentsToState[slug] = drifted;
-            componentsToMetadata[slug] = metadata;    
-        } catch (error) {
-            core.error(`Error reading metadata from ${metadataFiles[i]}`);
-            core.info(`File content ${fs.readFileSync(metadataFiles[i], 'utf8')}`);
-            throw error;
-        }
+        const slug = `${metadata.stack}-${metadata.component}`;
+        const drifted = metadata.drifted;
+
+        componentsToState[slug] = drifted;
+        componentsToMetadata[slug] = metadata;    
     }
 
     return {
@@ -157,6 +150,39 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
     }
 }
 
+const closeIssues = async (octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents) => {
+    const componentsToCloseIssuesFor = removedComponents.concat(recoveredComponents);
+
+    const repository = context.repo;
+
+    for (let i = 0; i < componentsToCloseIssuesFor.length; i++) {
+      const slug = componentsToCloseIssuesFor[i];
+      const issueNumber = componentsToIssueNumber[slug];
+
+      octokit.rest.issues.update({
+        ...repository,
+        issue_number: issueNumber,
+        state: "closed"
+      });
+
+      octokit.rest.issues.addLabels({
+        ...repository,
+        issue_number: issueNumber,
+        labels: ['drift-recovered']
+      });
+
+      const comment = removedComponents.hasOwnProperty(slug) ? `Component \`${slug}\` has been removed` : `Component \`${slug}\` is not drifting anymore`;
+
+      octokit.rest.issues.createComment({
+        ...repository,
+        issue_number: issueNumber,
+        body: comment,
+      });
+
+      core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
+    }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -187,7 +213,7 @@ const runAction = async (octokit, context, parameters) => {
     const driftingComponents = triageResults.driftingComponents;
     const componentsCandidatesToCloseIssue = triageResults.componentsCandidatesToCloseIssue;
 
-    core.info(`Components candidates to create issue: ${componentsCandidatesToCreateIssue}`);
+    await closeIssues(octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents);
 };
 
 module.exports = {
