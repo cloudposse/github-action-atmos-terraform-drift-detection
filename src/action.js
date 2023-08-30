@@ -63,14 +63,19 @@ const readMetadataFromPlanArtifacts = async () => {
 
     for (let i = 0; i < metadataFiles.length; i++) {
         core.info(`Reading metadata from ${metadataFiles[i]}`);
+        try {
+            const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
-        const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
-
-        const slug = `${metadata.stack}-${metadata.component}`;
-        const drifted = metadata.drifted;
-
-        componentsToState[slug] = drifted;
-        componentsToMetadata[slug] = metadata;
+            const slug = `${metadata.stack}-${metadata.component}`;
+            const drifted = metadata.drifted;
+    
+            componentsToState[slug] = drifted;
+            componentsToMetadata[slug] = metadata;    
+        } catch (error) {
+            core.error(`Error reading metadata from ${metadataFiles[i]}`);
+            core.info(`File content ${fs.readFileSync(metadataFiles[i], 'utf8')}`);
+            throw error;
+        }
     }
 
     return {
