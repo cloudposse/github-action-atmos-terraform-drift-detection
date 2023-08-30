@@ -273,6 +273,59 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
     }
 }
 
+const postDriftDetectionSummary = async (octokit, context, runId, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
+    const orgName = context.repo.owner;
+    const repo = context.repo.repo;
+
+    const table = [[{data: 'Component', header: true}, {data: 'State', header: true}, {data: 'Comments', header: true}]];
+
+    for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
+      const issueNumber = componentsToNewlyCreatedIssues[slug];
+
+      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+    }
+
+    for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
+      const slug = componentsCandidatesToCreateIssue[i];
+
+      if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
+        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`]);
+      }
+    }
+
+    for (let i = 0; i < removedComponents.length; i++) {
+      const slug = removedComponents[i];
+      const issueNumber = componentsToIssues[slug];
+
+      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/REMOVED-grey?style=for-the-badge"/>', `Component has been removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+    }
+
+    for (let i = 0; i < recoveredComponents.length; i++) {
+      const slug = recoveredComponents[i];
+      const issueNumber = componentsToIssues[slug];
+
+      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+    }
+
+    for (let i = 0; i < driftingComponents.length; i++) {
+      const slug = driftingComponents[i];
+      const issueNumber = componentsToIssues[slug];
+
+      if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
+        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      }
+    }
+
+    if (table.length > 1) {
+      await core.summary
+        .addHeading('Drift Detection Summary')
+        .addTable(table)
+        .write()
+    } else {
+      await core.summary.addRaw("No drift detected").write();
+    }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -282,7 +335,8 @@ const runAction = async (octokit, context, parameters) => {
     const {
         maxOpenedIssues = 0,
         assigneeUsers = [],
-        assigneeTeams = []
+        assigneeTeams = [],
+        runId = 0
     } = parameters;
 
     await downloadArtifacts("metadata");
@@ -300,7 +354,7 @@ const runAction = async (octokit, context, parameters) => {
     const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
     const removedComponents = triageResults.removedComponents;
     const recoveredComponents = triageResults.recoveredComponents;
-    // const driftingComponents = triageResults.driftingComponents;
+    const driftingComponents = triageResults.driftingComponents;
     const componentsCandidatesToCloseIssue = triageResults.componentsCandidatesToCloseIssue;
 
     await closeIssues(octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents);
@@ -309,9 +363,11 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    await createIssues(octokit, context, maxOpenedIssues, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
+    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
+
+    await postDriftDetectionSummary(octokit, context, runId, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
 };
 
 module.exports = {
