@@ -357,7 +357,6 @@ const runAction = async (octokit, context, parameters) => {
 
     const metadataFromPlanArtifacts = await readMetadataFromPlanArtifacts();
     const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
-    // const componentsToPlanMetadata = metadataFromPlanArtifacts.componentsToMetadata;
 
     const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
     const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
