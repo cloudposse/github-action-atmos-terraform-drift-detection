@@ -228,7 +228,7 @@ const createIssues = async (octokit, context, maxOpenedIssues, users, components
             ...repository,
             title: issueTitle,
             body: issueDescription,
-            labels: "drift"
+            labels: ["drift"]
         });
 
         const issueNumber = newIssue.data.number;
