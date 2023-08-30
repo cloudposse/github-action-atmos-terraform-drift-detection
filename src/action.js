@@ -47,11 +47,13 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
       }
     }
 
-    const componentsToIssuesSerialized = JSON.stringify(componentsToIssues);
-    const componentsToMetadataSerialized = JSON.stringify(componentsToMetadata);
+    core.info(`components-to-issues: ${JSON.stringify(componentsToIssues, null, 4)}`);
+    core.info(`components-to-metadata: ${JSON.stringify(componentsToMetadata, null, 4)}`);
 
-    core.info(`components-to-issues: ${componentsToIssuesSerialized}`);
-    core.info(`components-to-metadata: ${componentsToMetadataSerialized}`);
+    return {
+        componentsToIssues: componentsToIssues,
+        componentsToMetadata: componentsToMetadata,
+    };
 }
 
 /**
@@ -68,7 +70,12 @@ const runAction = async (octokit, context, parameters) => {
 
     downloadArtifacts("metadata");
 
-    mapOpenGitHubIssuesToComponents(octokit, context);
+    const openGitHubIssuesToComponents = mapOpenGitHubIssuesToComponents(octokit, context);
+    const componentsToIssues = openGitHubIssuesToComponents.componentsToIssues;
+    const componentsToMetadata = openGitHubIssuesToComponents.componentsToMetadata;
+
+    core.info(`components-to-issues: ${JSON.stringify(componentsToIssues, null, 4)}`);
+    core.info(`components-to-metadata: ${JSON.stringify(componentsToMetadata, null, 4)}`);
 };
 
 module.exports = {
