@@ -8,7 +8,7 @@ const downloadArtifacts = async (artifactName) => {
         const downloadDirectory = '.'
     
         // Downloading the artifact
-        const downloadResponse = artifactClient.downloadArtifact(artifactName, downloadDirectory);
+        const downloadResponse = await artifactClient.downloadArtifact(artifactName, downloadDirectory);
 
         core.info(`Artifact ${artifactName} downloaded to ${downloadResponse.downloadPath}`);
       } catch (error) {
