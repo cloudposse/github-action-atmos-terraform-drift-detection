@@ -282,14 +282,14 @@ const postDriftDetectionSummary = async (context, runId, maxOpenedIssues, compon
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/CREATED-brightgreen?style=for-the-badge"/>', `New component. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
     }
 
     for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
       const slug = componentsCandidatesToCreateIssue[i];
 
       if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`]);
+        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/CREATED-brightgreen?style=for-the-badge"/>', `New component. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`]);
       }
     }
 
@@ -304,7 +304,7 @@ const postDriftDetectionSummary = async (context, runId, maxOpenedIssues, compon
       const slug = recoveredComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/RECOVERED-grey?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
     }
 
     for (let i = 0; i < driftingComponents.length; i++) {
