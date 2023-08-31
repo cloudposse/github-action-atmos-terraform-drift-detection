@@ -1,6 +1,7 @@
 const fs = require('fs');
 const core = require('@actions/core');
 const artifact = require('@actions/artifact');
+const github = require('@actions/github');
 
 const downloadArtifacts = async (artifactName) => {
     try {
@@ -273,9 +274,10 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
     }
 }
 
-const postDriftDetectionSummary = async (context, runId, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
+const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
     const orgName = context.repo.owner;
     const repo = context.repo.repo;
+    const runId = github.context.runId;
 
     const table = [[{data: 'Component', header: true}, {data: 'State', header: true}, {data: 'Comments', header: true}]];
 
@@ -346,7 +348,6 @@ const runAction = async (octokit, context, parameters) => {
         maxOpenedIssues = 0,
         assigneeUsers = [],
         assigneeTeams = [],
-        runId = 0
     } = parameters;
 
     await downloadArtifacts("metadata");
@@ -376,7 +377,7 @@ const runAction = async (octokit, context, parameters) => {
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
-    await postDriftDetectionSummary(context, runId, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
+    await postDriftDetectionSummary(context, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
 
     await postStepSummaries(driftingComponents);
 };
