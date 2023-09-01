@@ -1,0 +1,29 @@
+name: 'GitHub Action Atmos Terraform Drift Detection'
+description: 'GitHub Action Atmos Terraform Drift Detection'
+author: hello@cloudposse.com
+branding:
+  icon: 'server'
+  color: 'white'
+inputs:
+  max-opened-issues:
+    description: "Number of open drift detection issues. Use `-1` to open unlimited number of issues. Default: 10"
+    default: '10'
+    required: false
+  assignee-users:
+    description: "Comma-separated list of users to assign issues to. This is used only when issue is getting created."
+    required: false
+    default: ""
+  assignee-teams:
+    description: "Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only when issue is getting created."
+    required: false
+    default: ""
+  token:
+    description:
+      Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically
+      not supplied by the user. When running this action on github.com, the default value is sufficient. When running on
+      GHES, you can pass a personal access token for github.com if you are experiencing rate limiting.
+    default: ${{ github.server_url == 'https://github.com' && github.token || '' }}
+
+runs:
+    using: 'node16'
+    main: 'src/index.js'

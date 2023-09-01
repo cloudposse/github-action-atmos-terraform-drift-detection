@@ -1,0 +1,132 @@
+---
+#
+# This is the canonical configuration for the `README.md`
+# Run `make readme` to rebuild the `README.md`
+#
+
+name: github-action-atmos-terraform-drift-detection
+
+tags:
+  - github-action
+  - atmos
+  - terraform
+
+# License of this project
+license: "APACHE2"
+
+github_repo: cloudposse/github-action-atmos-terraform-drift-detection
+
+badges:
+  - name: "Latest Release"
+    image: "https://img.shields.io/github/release/cloudposse/github-action-atmos-terraform-drift-detection.svg"
+    url: "https://github.com/cloudposse/github-action-atmos-terraform-drift-detection/releases/latest"
+  - name: "Slack Community"
+    image: "https://slack.cloudposse.com/badge.svg"
+    url: "https://slack.cloudposse.com"
+
+related: []
+
+description: This Github Action is used to detect drift
+
+introduction: |-
+  This Github Action is used to detect drift.
+
+  It will create or update github issue once drift is detect.
+
+  It is expected to run this action in a workflow with a scheduled run.
+
+  There is another companion action [github-action-atmos-terraform-drift-remediation](https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation).
+
+references:
+  - name: "github-action-atmos-terraform-drift-remediation"
+    description: "Companion GitHub Action for remediation"
+    url: "https://github.com/cloudposse/github-action-atmos-terraform-drift-remediation"
+  - name: "github-action-atmos-terraform-select-components"
+    description: "Companion GitHub Action to select components that are suitable for drift detection"
+    url: "https://github.com/cloudposse/github-action-atmos-terraform-select-components"
+  - name: "github-action-terraform-plan"
+    description: "GitHub Action to do Terraform Plan"
+    url: "https://github.com/cloudposse/github-action-atmos-terraform-plan"
+  - name: "github-action-terraform-apply"
+    description: "GitHub Action to do Terraform Apply"
+    url: "https://github.com/cloudposse/github-action-atmos-terraform-apply"
+  - name: "github-action-terraform-plan-storage"
+    description: "A GitHub Action to securely store Terraform plan files in an S3 bucket with metadata storage in DynamoDB."
+    url: "https://github.com/cloudposse/github-action-terraform-plan-storage"
+
+usage: |-
+  ### Workflow example
+
+  ```yaml
+    name: 👽 Atmos Terraform Drift Detection
+
+    on:
+      schedule:
+        - cron: "0 * * * *"
+
+    permissions:
+      id-token: write
+      contents: write
+      issues: write
+
+    jobs:
+      select-components:
+        runs-on: ubuntu-latest
+        name: Select Components
+        outputs:
+          matrix: ${{ steps.components.outputs.matrix }}
+        steps:
+          - name: Selected Components
+            id: components
+            uses: cloudposse/github-action-atmos-terraform-select-components@v0
+            with:
+              jq-query: 'to_entries[] | .key as $parent | .value.components.terraform | to_entries[] | select(.value.settings.github.actions_enabled // false) | [$parent, .key] | join(",")'
+              debug: ${{ env.DEBUG_ENABLED }}
+
+      plan-atmos-components:
+        needs:
+          - select-components
+        runs-on: ubuntu-latest
+        if: ${{ needs.select-components.outputs.matrix != '{"include":[]}' }}
+        strategy:
+          fail-fast: false # Don't fail fast to avoid locking TF State
+          matrix: ${{ fromJson(needs.select-components.outputs.matrix) }}
+        name: ${{ matrix.stack_slug }}
+        env:
+          GITHUB_TOKEN: "${{ github.token }}"
+        steps:
+          - name: Plan Atmos Component
+            id: atmos-plan
+            uses: cloudposse/github-action-atmos-terraform-plan@v0
+            with:
+              component: ${{ matrix.component }}
+              stack: ${{ matrix.stack }}
+              component-path: ${{ matrix.component_path }}
+              drift-detection-mode-enabled: "true"
+              terraform-plan-role: "arn:aws:iam::111111111111:role/acme-core-gbl-identity-gitops"
+              terraform-state-bucket: "acme-core-ue2-auto-gitops"
+              terraform-state-role: "arn:aws:iam::999999999999:role/acme-core-ue2-auto-gitops-gha"
+              terraform-state-table: "acme-core-ue2-auto-gitops"
+              aws-region: "us-east-2"
+
+      drift-detection:
+        needs:
+          - plan-atmos-components
+        runs-on: ubuntu-latest
+        steps:
+          - name: Drift Detection
+            uses: cloudposse/github-action-atmos-terraform-drift-detection@v0
+            with:
+              max-opened-issues: '3'
+  ```
+
+include:
+  - "docs/github-action.md"
+
+contributors:
+  - name: "Zinovii Dmytriv"
+    github: "zdmytriv"
+  - name: "Erik Osterman"
+    github: "osterman"
+  - name: "Daniel Miller"
+    github: "milldr"
