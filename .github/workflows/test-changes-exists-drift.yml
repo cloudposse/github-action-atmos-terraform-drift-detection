@@ -43,6 +43,7 @@ jobs:
         uses: ./
         with:
           max-opened-issues: '3'
+          token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
 
     outputs:
       result: ${{ steps.current.outcome }}
