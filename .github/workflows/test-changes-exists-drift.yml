@@ -37,7 +37,7 @@ jobs:
           token: ${{ github.token }}
 
       - name: Close found issues
-        run: cat ${{ steps.bugs.outputs.path }} | xargs gh issue close
+        run: cat ${{ steps.bugs.outputs.path }}
 
   test:
     runs-on: ubuntu-latest
