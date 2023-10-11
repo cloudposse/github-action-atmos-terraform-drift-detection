@@ -2,9 +2,6 @@ name: "Test - Changes exists - Drift"
 
 on:
   workflow_dispatch: {}
-  pull_request:
-    branches: [ main ]
-    types: [opened, synchronize, reopened]
 
 env:
   AWS_REGION: us-east-2
