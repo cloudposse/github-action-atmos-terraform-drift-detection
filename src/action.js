@@ -285,7 +285,7 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | <picture>![created](https://shields.io/badge/CREATED-brightgreen?style=for-the-badge "Created")</picture> | New component. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![created](https://shields.io/badge/CREATED-brightgreen?style=for-the-badge "Created") | New component. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
