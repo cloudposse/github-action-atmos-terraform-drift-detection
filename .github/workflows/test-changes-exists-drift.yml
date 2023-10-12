@@ -53,8 +53,7 @@ jobs:
         id: test
         shell: bash
         run: |
-          СOUNT_ISSUES="$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)"
-          echo "count=${СOUNT_ISSUES}" >> $GITHUB_OUTPUT
+          echo "count=$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)" >> $GITHUB_OUTPUT
 
       - uses: nick-fields/assert-action@v1
         with:
