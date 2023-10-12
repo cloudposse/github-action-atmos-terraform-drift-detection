@@ -295,14 +295,14 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
       const slug = componentsCandidatesToCreateIssue[i];
 
       if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
+        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
       }
     }
 
@@ -310,14 +310,14 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       const slug = removedComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < recoveredComponents.length; i++) {
       const slug = recoveredComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Drift recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Drift recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < driftingComponents.length; i++) {
@@ -325,7 +325,7 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       const issueNumber = componentsToIssues[slug];
 
       if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
       }
     }
 
