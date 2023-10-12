@@ -279,19 +279,20 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     const repo = context.repo.repo;
     const runId = github.context.runId;
 
-    const table = [[{data: 'Component', header: true}, {data: 'State', header: true}, {data: 'Comments', header: true}]];
+    const table = [ `| Component | State | Comments |`];
+    table.push(`|---|---|---|`)
 
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/CREATED-brightgreen?style=for-the-badge"/>', `New component. Created new issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![created](https://shields.io/badge/CREATED-brightgreen?style=for-the-badge "Created") | New component. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
       const slug = componentsCandidatesToCreateIssue[i];
 
       if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/CREATED-brightgreen?style=for-the-badge"/>', `New component. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`]);
+        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![created](https://shields.io/badge/CREATED-brightgreen?style=for-the-badge "Created") | New component. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
       }
     }
 
@@ -299,14 +300,14 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       const slug = removedComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/REMOVED-grey?style=for-the-badge"/>', `Component has been removed. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![removed](https://shields.io/badge/REMOVED-brightgreen?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < recoveredComponents.length; i++) {
       const slug = recoveredComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/RECOVERED-grey?style=for-the-badge"/>', `Component recovered. Closed issue <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < driftingComponents.length; i++) {
@@ -314,14 +315,14 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       const issueNumber = componentsToIssues[slug];
 
       if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-        table.push([`<a href="https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}">${slug}</a>`, '<img src="https://shields.io/badge/DRIFTED-important?style=for-the-badge"/>', `Component drifted. Issue already exists <a href="https://github.com/${orgName}/${repo}/issues/${issueNumber}">#${issueNumber}</a>`]);
+        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Component drifted. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
       }
     }
 
     if (table.length > 1) {
       await core.summary
         .addRaw('# Drift Detection Summary', true)
-        .addTable(table)
+        .addRaw(table.join("\n"), true)
         .write()
     } else {
       await core.summary.addRaw("No drift detected").write();
