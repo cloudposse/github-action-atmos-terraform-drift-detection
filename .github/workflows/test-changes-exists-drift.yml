@@ -68,6 +68,8 @@ jobs:
       - name: Close found issues
         id: test
         run: |
+          cat ${{ steps.issues.outputs.path }}
+          echo "count=$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)"
           echo "count=$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)" >> $GITHUB_OUTPUT
 
       - uses: nick-fields/assert-action@v1
