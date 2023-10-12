@@ -58,7 +58,7 @@ jobs:
       - uses: nick-fields/assert-action@v1
         with:
           expected: '0'
-          actual: "${{ needs.test.outputs.count }}"
+          actual: "${{ steps.test.outputs.count }}"
 
   test:
     runs-on: ubuntu-latest
