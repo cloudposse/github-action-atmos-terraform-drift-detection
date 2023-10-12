@@ -88,7 +88,7 @@ jobs:
         id: issues
         uses: lee-dohm/select-matching-issues@v1
         with:
-          query: 'label:drift label:test-changes-exists is:open'
+          query: 'label:drift label:test-changes-existsis:open'
           token: ${{ github.token }}
 
       - name: Close found issues

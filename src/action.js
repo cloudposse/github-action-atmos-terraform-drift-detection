@@ -214,7 +214,7 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
     return users;
 }
 
-const createIssues = async (octokit, context, maxOpenedIssues, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue) => {
+const createIssues = async (octokit, context, maxOpenedIssues, labels, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue) => {
     const repository = context.repo;
     const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
     const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
@@ -229,7 +229,7 @@ const createIssues = async (octokit, context, maxOpenedIssues, users, components
             ...repository,
             title: issueTitle,
             body: issueDescription,
-            labels: ["drift"]
+            labels: labels + ["drift"]
         });
 
         const issueNumber = newIssue.data.number;
@@ -348,6 +348,7 @@ const runAction = async (octokit, context, parameters) => {
         maxOpenedIssues = 0,
         assigneeUsers = [],
         assigneeTeams = [],
+        labels        = []
     } = parameters;
 
     await downloadArtifacts("metadata");
@@ -373,7 +374,7 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
+    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, labels, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
