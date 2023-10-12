@@ -78,9 +78,11 @@ const readMetadataFromPlanArtifacts = async () => {
         const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
         const slug = `${metadata.stack}-${metadata.component}`;
-        const drifted = metadata.drifted || metadata.error;
 
-        componentsToState[slug] = drifted;
+        componentsToState[slug] = {
+            drifted: metadata.drifted,
+            error: metadata.error
+        };
         componentsToMetadata[slug] = metadata;    
     }
 
@@ -99,15 +101,17 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
     const removedComponents = [];
     const recoveredComponents = [];
     const driftingComponents = [];
+    const erroredComponents = [];
 
     for (let slug of slugs) {
         if (componentsToIssueNumber.hasOwnProperty(slug)) {
             const issueNumber = componentsToIssueNumber[slug];
 
             if (componentsToPlanState.hasOwnProperty(slug)) {
-                const drifted = componentsToPlanState[slug];
+                const drifted = componentsToPlanState[slug].drifted;
+                const error = componentsToPlanState[slug].error;
 
-                if (drifted) {
+                if (drifted || error) {
                 const commitSHA = componentsToIssueMetadata[slug].commitSHA;
                 const currentSHA = "${{ github.sha }}";
                 if (currentSHA === commitSHA) {
@@ -129,12 +133,17 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
                 removedComponents.push(slug);
             }
         } else {
-            const drifted = componentsToPlanState[slug];
+            const drifted = componentsToPlanState[slug].drifted;
+            const error = componentsToPlanState[slug].error;
 
             if (drifted) {
                 core.info(`Component "${slug}" drifted. New issue has to be created.`);
                 componentsCandidatesToCreateIssue.push(slug);
                 driftingComponents.push(slug);
+            } else if (error) {
+                core.info(`Component "${slug}" drift error. New issue has to be created.`);
+                componentsCandidatesToCreateIssue.push(slug);
+                erroredComponents.push(slug);
             } else {
                 core.info(`Component "${slug}" is not drifting. Skipping ...`);
             }
@@ -147,6 +156,7 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
         removedComponents: removedComponents,
         recoveredComponents: recoveredComponents,
         driftingComponents: driftingComponents,
+        erroredComponents: erroredComponents,
         componentsCandidatesToCloseIssue: componentsCandidatesToCloseIssue,
     }
 }
@@ -329,9 +339,10 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     }
 }
 
-const postStepSummaries = async (driftingComponents) => {
-    for (let i = 0; i < driftingComponents.length; i++) {
-      const slug = driftingComponents[i];
+const postStepSummaries = async (driftingComponents, erroredComponents) => {
+    const components = driftingComponents.concat(erroredComponents)
+    for (let i = 0; i < components.length; i++) {
+      const slug = components[i];
       const file = `step-summary-${slug}.md`;
       const content = fs.readFileSync(file, 'utf-8');
 
@@ -367,6 +378,7 @@ const runAction = async (octokit, context, parameters) => {
     const removedComponents = triageResults.removedComponents;
     const recoveredComponents = triageResults.recoveredComponents;
     const driftingComponents = triageResults.driftingComponents;
+    const erroredComponents = triageResults.erroredComponents;
     const componentsCandidatesToCloseIssue = triageResults.componentsCandidatesToCloseIssue;
 
     await closeIssues(octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents);
@@ -381,7 +393,7 @@ const runAction = async (octokit, context, parameters) => {
 
     await postDriftDetectionSummary(context, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
 
-    await postStepSummaries(driftingComponents);
+    await postStepSummaries(driftingComponents, erroredComponents);
 };
 
 module.exports = {
