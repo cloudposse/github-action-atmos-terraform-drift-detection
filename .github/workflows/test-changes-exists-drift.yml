@@ -40,7 +40,8 @@ jobs:
         run: |
           # 
           cat ${{ steps.bugs.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
-
+        env:
+          GH_TOKEN: ${{ github.token }}
   test:
     runs-on: ubuntu-latest
     continue-on-error: true
