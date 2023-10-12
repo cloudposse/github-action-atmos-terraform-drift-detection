@@ -34,7 +34,7 @@ jobs:
         id: issues
         uses: lee-dohm/select-matching-issues@v1
         with:
-          query: 'label:drift'
+          query: 'label:drift is:open'
           token: ${{ github.token }}
 
       - name: Close found issues
@@ -46,14 +46,14 @@ jobs:
         id: issues2
         uses: lee-dohm/select-matching-issues@v1
         with:
-          query: 'label:drift'
+          query: 'label:drift is:open'
           token: ${{ github.token }}
 
       - name: Close found issues
         id: test
         run: |
-          СOUNT="$(wc -l ${{ steps.issues.outputs.path }} | cut -d ' ' -f6)"
-          echo "count=${COUNT}" >> $GITHUB_OUTPUT
+          СOUNT_ISSUES="$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)"
+          echo "count=${СOUNT_ISSUES}" >> $GITHUB_OUTPUT
 
       - uses: nick-fields/assert-action@v1
         with:
