@@ -51,7 +51,7 @@ jobs:
 
       - name: Close found issues
         id: test
-        run:
+        run: |
           СOUNT=$(cat ${{ steps.issues.outputs.path }} | wc -l | cut -d ' ' -f6)
           echo "count=${COUNT}" >> $GITHUB_OUTPUT
 
