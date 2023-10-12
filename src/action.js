@@ -320,7 +320,7 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
 
     if (table.length > 1) {
       await core.summary
-        .addHeading('Drift Detection Summary')
+        .addRaw('# Drift Detection Summary')
         .addTable(table)
         .write()
     } else {
