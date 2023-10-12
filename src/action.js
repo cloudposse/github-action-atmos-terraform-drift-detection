@@ -78,7 +78,7 @@ const readMetadataFromPlanArtifacts = async () => {
         const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
 
         const slug = `${metadata.stack}-${metadata.component}`;
-        const drifted = metadata.drifted;
+        const drifted = metadata.drifted || metadata.error;
 
         componentsToState[slug] = drifted;
         componentsToMetadata[slug] = metadata;    
