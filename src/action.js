@@ -300,14 +300,14 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       const slug = removedComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![removed](https://shields.io/badge/REMOVED-brightgreen?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < recoveredComponents.length; i++) {
       const slug = recoveredComponents[i];
       const issueNumber = componentsToIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#${slug}) | ![recovered](https://shields.io/badge/RECOVERED-grey?style=for-the-badge "Recovered") | Component recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < driftingComponents.length; i++) {
