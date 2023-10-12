@@ -43,7 +43,7 @@ jobs:
         id: current
         uses: ./
         with:
-          max-opened-issues: '3'
+          max-opened-issues: '4'
           token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
 
     outputs:
