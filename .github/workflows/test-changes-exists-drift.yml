@@ -83,14 +83,14 @@ jobs:
       - name: Tear down
         run: echo "Do Tear down"
 
-      - name: Find all issues
-        id: issues
-        uses: lee-dohm/select-matching-issues@v1
-        with:
-          query: 'label:drift is:open'
-          token: ${{ github.token }}
-
-      - name: Close found issues
-        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
-        env:
-          GH_TOKEN: ${{ github.token }}
+#      - name: Find all issues
+#        id: issues
+#        uses: lee-dohm/select-matching-issues@v1
+#        with:
+#          query: 'label:drift is:open'
+#          token: ${{ github.token }}
+#
+#      - name: Close found issues
+#        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
+#        env:
+#          GH_TOKEN: ${{ github.token }}
