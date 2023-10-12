@@ -38,8 +38,8 @@ jobs:
 
       - name: Close found issues
         run: |
-          # gh issue close
-          cat ${{ steps.bugs.outputs.path }} | xargs -I {} -d '\n' echo "{} |" 
+          # 
+          cat ${{ steps.bugs.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
 
   test:
     runs-on: ubuntu-latest
