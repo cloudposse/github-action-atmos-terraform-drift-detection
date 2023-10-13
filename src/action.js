@@ -284,7 +284,7 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
     }
 }
 
-const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents) => {
+const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents, erroredComponents) => {
     const orgName = context.repo.owner;
     const repo = context.repo.repo;
     const runId = github.context.runId;
@@ -295,14 +295,22 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      if (driftingComponents.hasOwnProperty(slug)) {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      } else if (erroredComponents.hasOwnProperty(slug)) {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      }
     }
 
     for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
       const slug = componentsCandidatesToCreateIssue[i];
 
       if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "drifted") | New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
+        if (driftingComponents.hasOwnProperty(slug)) {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
+        } else if (erroredComponents.hasOwnProperty(slug)) {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
+        }
       }
     }
 
@@ -329,6 +337,15 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
       }
     }
 
+    for (let i = 0; i < erroredComponents.length; i++) {
+        const slug = erroredComponents[i];
+        const issueNumber = componentsToIssues[slug];
+
+        if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
+            table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+        }
+    }
+    
     if (table.length > 1) {
       await core.summary
         .addRaw('# Drift Detection Summary', true)
@@ -391,7 +408,7 @@ const runAction = async (octokit, context, parameters) => {
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
-    await postDriftDetectionSummary(context, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents);
+    await postDriftDetectionSummary(context, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents, erroredComponents);
 
     await postStepSummaries(driftingComponents, erroredComponents);
 };
