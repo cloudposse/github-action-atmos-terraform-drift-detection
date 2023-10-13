@@ -295,7 +295,7 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
     for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
       const issueNumber = componentsToNewlyCreatedIssues[slug];
 
-      if (driftingComponent.includes(slug)) {
+      if (driftingComponents.includes(slug)) {
           table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
       } else if (erroredComponents.includes(slug)) {
           table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
