@@ -28,6 +28,16 @@ const getMetadataFromIssueBody = (body) => {
     }
   }
 
+class Component {
+    constructor(slug, metadata, issueNumber, drifted, error) {
+        this.slug = slug;
+        this.metadata = metadata;
+        this.issueNumber = issueNumber;
+        this.drifted = drifted;
+        this.error = error;
+    }
+}
+
 const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     const repository = context.repo;
 
@@ -35,6 +45,7 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     let page = 1;
     let componentsToIssues = {};
     let componentsToMetadata = {};
+    let components = {};
     let isContinue = true;
 
     while (isContinue) {
@@ -53,8 +64,10 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
         
         for (let issue of driftDetectionIssues) {
           const metadata = getMetadataFromIssueBody(issue.body);
-          componentsToIssues[`${metadata.stack}-${metadata.component}`] = issue.number;
-          componentsToMetadata[`${metadata.stack}-${metadata.component}`] = metadata;
+          const slug = `${metadata.stack}-${metadata.component}`
+          componentsToIssues[slug] = issue.number;
+          componentsToMetadata[slug] = metadata;
+          components[slug] = new Component(slug, metadata, issue.number, true, false)
         }
 
         page++;
@@ -64,6 +77,7 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     return {
         componentsToIssues: componentsToIssues,
         componentsToMetadata: componentsToMetadata,
+        components: components
     };
 }
 
@@ -73,6 +87,7 @@ const readMetadataFromPlanArtifacts = async () => {
 
     let componentsToState = {};
     let componentsToMetadata = {};
+    let components = {};
 
     for (let i = 0; i < metadataFiles.length; i++) {
         const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
@@ -83,17 +98,19 @@ const readMetadataFromPlanArtifacts = async () => {
             drifted: metadata.drifted,
             error: metadata.error
         };
-        componentsToMetadata[slug] = metadata;    
+        componentsToMetadata[slug] = metadata;
+        components[slug] = new Component(slug, metadata, null, metadata.drifted, metadata.error)
     }
 
     return {
         componentsToState: componentsToState,
         componentsToMetadata: componentsToMetadata,
+        components: components
     };
 }
 
-const triage = async(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState) => {
-    let slugs = new Set([...Object.keys(componentsToIssueNumber), ...Object.keys(componentsToPlanState)]);
+const triage = async(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState, componentsFromIssues, componentsFromArtifacts) => {
+    let slugs = new Set([...Object.keys(componentsFromIssues), ...Object.keys(componentsFromArtifacts)]);
 
     const componentsCandidatesToCreateIssue = [];
     const componentsCandidatesToCloseIssue = [];
@@ -385,11 +402,13 @@ const runAction = async (octokit, context, parameters) => {
     const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
     const componentsToIssueNumber = openGitHubIssuesToComponents.componentsToIssues;
     const componentsToIssueMetadata = openGitHubIssuesToComponents.componentsToMetadata;
+    const componentsFromIssues = openGitHubIssuesToComponents.components
 
     const metadataFromPlanArtifacts = await readMetadataFromPlanArtifacts();
     const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
+    const componentsFromArtifacts = metadataFromPlanArtifacts.components
 
-    const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
+    const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState, componentsFromIssues, componentsFromArtifacts);
     const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
     const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
     const removedComponents = triageResults.removedComponents;
