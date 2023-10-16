@@ -28,16 +28,6 @@ const getMetadataFromIssueBody = (body) => {
     }
   }
 
-class Component {
-    constructor(slug, metadata, issueNumber, drifted, error) {
-        this.slug = slug;
-        this.metadata = metadata;
-        this.issueNumber = issueNumber;
-        this.drifted = drifted;
-        this.error = error;
-    }
-}
-
 const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     const repository = context.repo;
 
@@ -45,7 +35,6 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     let page = 1;
     let componentsToIssues = {};
     let componentsToMetadata = {};
-    let components = {};
     let isContinue = true;
 
     while (isContinue) {
@@ -60,14 +49,13 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
         isContinue = false;
       } else {
         const driftDetectionIssues = response.data
-          .filter(issue => issue.title.startsWith('Drift Detected in'));
+          .filter(issue => issue.title.startsWith('Drift Detected in') || issue.title.startsWith('Failure Detected in'));
         
         for (let issue of driftDetectionIssues) {
           const metadata = getMetadataFromIssueBody(issue.body);
           const slug = `${metadata.stack}-${metadata.component}`
           componentsToIssues[slug] = issue.number;
           componentsToMetadata[slug] = metadata;
-          components[slug] = new Component(slug, metadata, issue.number, true, false)
         }
 
         page++;
@@ -77,7 +65,6 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     return {
         componentsToIssues: componentsToIssues,
         componentsToMetadata: componentsToMetadata,
-        components: components
     };
 }
 
@@ -87,7 +74,6 @@ const readMetadataFromPlanArtifacts = async () => {
 
     let componentsToState = {};
     let componentsToMetadata = {};
-    let components = {};
 
     for (let i = 0; i < metadataFiles.length; i++) {
         const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
@@ -99,13 +85,11 @@ const readMetadataFromPlanArtifacts = async () => {
             error: metadata.error
         };
         componentsToMetadata[slug] = metadata;
-        components[slug] = new Component(slug, metadata, null, metadata.drifted, metadata.error)
     }
 
     return {
         componentsToState: componentsToState,
         componentsToMetadata: componentsToMetadata,
-        components: components
     };
 }
 
@@ -241,7 +225,7 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
     return users;
 }
 
-const createIssues = async (octokit, context, maxOpenedIssues, labels, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue) => {
+const createIssues = async (octokit, context, maxOpenedIssues, labels, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue, erroredComponents) => {
     const repository = context.repo;
     const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
     const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
@@ -249,7 +233,7 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
 
     for (let i = 0; i < numOfIssuesToCreate; i++) {
         const slug = componentsCandidatesToCreateIssue[i];
-        const issueTitle = `Drift Detected in \`${slug}\``;
+        const issueTitle = erroredComponents.hasOwnProperty(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
     
         const newIssue = await octokit.rest.issues.create({
@@ -423,7 +407,7 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, labels, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue);
+    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, labels, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue, erroredComponents);
 
     await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
