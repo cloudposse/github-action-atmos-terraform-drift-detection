@@ -93,8 +93,8 @@ const readMetadataFromPlanArtifacts = async () => {
     };
 }
 
-const triage = async(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState, componentsFromIssues, componentsFromArtifacts) => {
-    let slugs = new Set([...Object.keys(componentsFromIssues), ...Object.keys(componentsFromArtifacts)]);
+const triage = async(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState) => {
+    let slugs = new Set([...Object.keys(componentsToIssueNumber), ...Object.keys(componentsToPlanState)]);
 
     const componentsCandidatesToCreateIssue = [];
     const componentsCandidatesToCloseIssue = [];
@@ -386,13 +386,11 @@ const runAction = async (octokit, context, parameters) => {
     const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
     const componentsToIssueNumber = openGitHubIssuesToComponents.componentsToIssues;
     const componentsToIssueMetadata = openGitHubIssuesToComponents.componentsToMetadata;
-    const componentsFromIssues = openGitHubIssuesToComponents.components
 
     const metadataFromPlanArtifacts = await readMetadataFromPlanArtifacts();
     const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
-    const componentsFromArtifacts = metadataFromPlanArtifacts.components
 
-    const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState, componentsFromIssues, componentsFromArtifacts);
+    const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
     const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
     const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
     const removedComponents = triageResults.removedComponents;
