@@ -233,7 +233,7 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
 
     for (let i = 0; i < numOfIssuesToCreate; i++) {
         const slug = componentsCandidatesToCreateIssue[i];
-        const issueTitle = erroredComponents.hasOwnProperty(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
+        const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
     
         const newIssue = await octokit.rest.issues.create({
