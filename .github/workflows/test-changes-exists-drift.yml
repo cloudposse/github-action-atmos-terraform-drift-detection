@@ -61,7 +61,7 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@8584229dc05af0f49abb6927e3526f355b7a7ec7
+        uses: lee-dohm/select-matching-issues@main
         with:
           query: 'label:drift label:test-changes-exists is:open'
           token: ${{ github.token }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@8584229dc05af0f49abb6927e3526f355b7a7ec7
+        uses: lee-dohm/select-matching-issues@main
         with:
           query: 'label:drift label:test-changes-exists is:open'
           token: ${{ github.token }}
