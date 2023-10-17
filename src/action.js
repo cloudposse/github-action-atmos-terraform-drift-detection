@@ -342,18 +342,16 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
 
     for (let i = 0; i < driftingComponents.length; i++) {
       const slug = driftingComponents[i];
-      const issueNumber = componentsToIssues[slug].number;
-
       if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-        table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+          const issueNumber = componentsToIssues[slug].number;
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
       }
     }
 
     for (let i = 0; i < erroredComponents.length; i++) {
         const slug = erroredComponents[i];
-        const issueNumber = componentsToIssues[slug].number;
-
         if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
+            const issueNumber = componentsToIssues[slug].number;
             table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
         }
     }
