@@ -54,7 +54,10 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
         for (let issue of driftDetectionIssues) {
           const metadata = getMetadataFromIssueBody(issue.body);
           const slug = `${metadata.stack}-${metadata.component}`
-          componentsToIssues[slug] = issue.number;
+          componentsToIssues[slug] = {
+              number: issue.number,
+              error: issue.title.startsWith('Failure Detected in')
+          };
           componentsToMetadata[slug] = metadata;
         }
 
@@ -106,7 +109,7 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
 
     for (let slug of slugs) {
         if (componentsToIssueNumber.hasOwnProperty(slug)) {
-            const issueNumber = componentsToIssueNumber[slug];
+            const issueNumber = componentsToIssueNumber[slug].number;
 
             if (componentsToPlanState.hasOwnProperty(slug)) {
                 const drifted = componentsToPlanState[slug].drifted;
@@ -169,7 +172,7 @@ const closeIssues = async (octokit, context, componentsToIssueNumber, removedCom
 
     for (let i = 0; i < componentsToCloseIssuesFor.length; i++) {
       const slug = componentsToCloseIssuesFor[i];
-      const issueNumber = componentsToIssueNumber[slug];
+      const issueNumber = componentsToIssueNumber[slug].number;
 
       octokit.rest.issues.update({
         ...repository,
@@ -183,7 +186,12 @@ const closeIssues = async (octokit, context, componentsToIssueNumber, removedCom
         labels: ['drift-recovered']
       });
 
-      const comment = removedComponents.hasOwnProperty(slug) ? `Component \`${slug}\` has been removed` : `Component \`${slug}\` is not drifting anymore`;
+      let comment =  `Component \`${slug}\` is not drifting anymore`;
+      if ( removedComponents.hasOwnProperty(slug) ) {
+          comment = `Component \`${slug}\` has been removed`;
+      } else if ( componentsToIssueNumber[slug].error ) {
+          comment =  `Failure \`${slug}\` solved`;
+      }
 
       octokit.rest.issues.createComment({
         ...repository,
@@ -273,7 +281,7 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
     for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
       const slug = componentsToUpdateExistingIssue[i];
       const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
-      const issueNumber = componentsToIssues[slug];
+      const issueNumber = componentsToIssues[slug].number;
 
       octokit.rest.issues.update({
         ...repository,
@@ -317,21 +325,24 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
 
     for (let i = 0; i < removedComponents.length; i++) {
       const slug = removedComponents[i];
-      const issueNumber = componentsToIssues[slug];
+      const issueNumber = componentsToIssues[slug].number;
 
       table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
     }
 
     for (let i = 0; i < recoveredComponents.length; i++) {
       const slug = recoveredComponents[i];
-      const issueNumber = componentsToIssues[slug];
-
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Drift recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      const issueNumber = componentsToIssues[slug].number;
+      if (componentsToIssues[slug].error) {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Failure recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      } else {
+          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Drift recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
+      }
     }
 
     for (let i = 0; i < driftingComponents.length; i++) {
       const slug = driftingComponents[i];
-      const issueNumber = componentsToIssues[slug];
+      const issueNumber = componentsToIssues[slug].number;
 
       if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
         table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
@@ -340,7 +351,7 @@ const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToI
 
     for (let i = 0; i < erroredComponents.length; i++) {
         const slug = erroredComponents[i];
-        const issueNumber = componentsToIssues[slug];
+        const issueNumber = componentsToIssues[slug].number;
 
         if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
             table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
