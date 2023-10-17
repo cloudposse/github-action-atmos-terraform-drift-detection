@@ -17,6 +17,10 @@ inputs:
     description: "Comma-separated list of teams to assign issues to. You have to pass github token with `read:org` scope. This is used only when issue is getting created."
     required: false
     default: ""
+  labels:
+    description: "Comma-separated list of additional labels to assign issues to."
+    required: false
+    default: ""
   token:
     description:
       Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically

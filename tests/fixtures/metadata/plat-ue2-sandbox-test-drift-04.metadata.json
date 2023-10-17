@@ -1,0 +1,1 @@
+{ "stack": "plat-ue2-sandbox", "component": "test-drift-04", "componentPath": "components/terraform/s3-bucket", "drifted": true, "error": false }
