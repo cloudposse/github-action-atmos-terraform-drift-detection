@@ -54,10 +54,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          
       - uses: nick-fields/assert-action@v1
         with:
           expected: 'success'
@@ -65,7 +61,7 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@v1
+        uses: lee-dohm/select-matching-issues@8584229dc05af0f49abb6927e3526f355b7a7ec7
         with:
           query: 'label:drift label:test-changes-exists is:open'
           token: ${{ github.token }}
@@ -90,7 +86,7 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@v1
+        uses: lee-dohm/select-matching-issues@8584229dc05af0f49abb6927e3526f355b7a7ec7
         with:
           query: 'label:drift label:test-changes-exists is:open'
           token: ${{ github.token }}
