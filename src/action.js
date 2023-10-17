@@ -116,20 +116,28 @@ const triage = async(componentsToIssueNumber, componentsToIssueMetadata, compone
                 const error = componentsToPlanState[slug].error;
 
                 if (drifted || error) {
-                const commitSHA = componentsToIssueMetadata[slug].commitSHA;
-                const currentSHA = "${{ github.sha }}";
-                if (currentSHA === commitSHA) {
-                    core.info(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
-                    driftingComponents.push(slug);
+                    const commitSHA = componentsToIssueMetadata[slug].commitSHA;
+                    const currentSHA = "${{ github.sha }}";
+                    if (currentSHA === commitSHA) {
+                        core.info(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
+                        if (error) {
+                            erroredComponents.push(slug)
+                        } else {
+                            driftingComponents.push(slug);
+                        }
+                    } else {
+                        core.info(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
+                        componentsToUpdateExistingIssue.push(slug);
+                        if (error) {
+                            erroredComponents.push(slug)
+                        } else {
+                            driftingComponents.push(slug);
+                        }
+                    }
                 } else {
-                    core.info(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
-                    componentsToUpdateExistingIssue.push(slug);
-                    driftingComponents.push(slug);
-                }
-                } else {
-                core.info(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
-                componentsCandidatesToCloseIssue.push(slug);
-                recoveredComponents.push(slug);
+                    core.info(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
+                    componentsCandidatesToCloseIssue.push(slug);
+                    recoveredComponents.push(slug);
                 }
             } else {
                 core.info(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
