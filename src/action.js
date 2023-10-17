@@ -188,11 +188,19 @@ const closeIssues = async (octokit, context, componentsToIssueNumber, removedCom
         state: "closed"
       });
 
-      octokit.rest.issues.addLabels({
-        ...repository,
-        issue_number: issueNumber,
-        labels: ['drift-recovered']
-      });
+      if (componentsToIssueNumber[slug].error) {
+          octokit.rest.issues.addLabels({
+              ...repository,
+              issue_number: issueNumber,
+              labels: ['error-recovered']
+          });
+      } else {
+          octokit.rest.issues.addLabels({
+              ...repository,
+              issue_number: issueNumber,
+              labels: ['drift-recovered']
+          });
+      }
 
       let comment =  `Component \`${slug}\` is not drifting anymore`;
       if ( removedComponents.hasOwnProperty(slug) ) {
@@ -251,12 +259,14 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
         const slug = componentsCandidatesToCreateIssue[i];
         const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
-    
+
+        const label  = erroredComponents.includes(slug) ? "error" : "drift"
+
         const newIssue = await octokit.rest.issues.create({
             ...repository,
             title: issueTitle,
             body: issueDescription,
-            labels: ["drift"].concat(labels)
+            labels: [label].concat(labels)
         });
 
         const issueNumber = newIssue.data.number;
