@@ -258,7 +258,8 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
     for (let i = 0; i < numOfIssuesToCreate; i++) {
         const slug = componentsCandidatesToCreateIssue[i];
         const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
-        const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
+        const file_name = slug.replace("/", "_")
+        const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
 
         const label  = erroredComponents.includes(slug) ? "error" : "drift"
 
@@ -298,7 +299,8 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
 
     for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
       const slug = componentsToUpdateExistingIssue[i];
-      const issueDescription = fs.readFileSync(`issue-description-${slug}.md`, 'utf8');
+      const file_name = slug.replace("/", "_")
+      const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
       const issueNumber = componentsToIssues[slug].number;
 
       octokit.rest.issues.update({
@@ -388,7 +390,8 @@ const postStepSummaries = async (driftingComponents, erroredComponents) => {
     const components = driftingComponents.concat(erroredComponents)
     for (let i = 0; i < components.length; i++) {
       const slug = components[i];
-      const file = `step-summary-${slug}.md`;
+      const file_name = slug.replace("/", "_")
+      const file = `step-summary-${file_name}.md`;
       const content = fs.readFileSync(file, 'utf-8');
 
       await core.summary.addRaw(content).write();
