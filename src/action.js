@@ -259,6 +259,11 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
         const slug = componentsCandidatesToCreateIssue[i];
         const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const file_name = slug.replace("/", "_")
+        // Before we read the issue description, test that the file exists
+        if (!fs.existsSync(`issue-description-${file_name}.md`)) {
+            core.error(`Failed to create issue for component ${slug} because issue description file issue-description-${file_name}.md does not exist`);
+            continue;
+        }
         const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
 
         const label  = erroredComponents.includes(slug) ? "error" : "drift"
