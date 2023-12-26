@@ -64,10 +64,12 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
     }
 
     let per_page = 100; // Max allowed value per page
-
-    return new Map(listIssues(per_page, 1, []).map( (stackFromIssue) => {
-        return [stackFromIssue.slug, stackFromIssue]
-    }))
+    let result = await listIssues(per_page, 1, [])
+    return new Map(result.map(
+        (stackFromIssue) => {
+            return [stackFromIssue.slug, stackFromIssue]
+        }
+    ))
 }
 
 // const readMetadataFromPlanArtifacts = async () => {
