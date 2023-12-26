@@ -3,11 +3,12 @@ const {NewCreated} = require("../results/new-created");
 const {readFileSync} = require("fs");
 
 class Create {
-    constructor(state) {
+    constructor(state, users) {
         this.state = state;
+        this.users = users;
     }
 
-    async run(octokit, context, users) {
+    async run(octokit, context) {
         const repository = context.repo;
 
         const slug = this.state.slug;
@@ -28,12 +29,12 @@ class Create {
 
         core.info(`Created new issue with number: ${issueNumber}`);
 
-        if (users.length > 0) {
+        if (this.users.length > 0) {
             try {
                 await octokit.rest.issues.addAssignees({
                     ...repository,
                     issue_number: issueNumber,
-                    assignees: users
+                    assignees: this.users
                 });
             } catch (error) {
                 core.error(`Failed to associate user to an issue. Error ${error.message}`);
