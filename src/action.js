@@ -373,7 +373,7 @@ const postDriftDetectionSummary = async (context, results) => {
     table.push(`|---|---|---|`)
 
     results.map( (result) => {
-      result.render()
+      return result.render()
     }).filter(
         (result) => {
             return result !== ""
@@ -506,8 +506,6 @@ const runAction = async (octokit, context, parameters) => {
     const results = await Promise.all(triageResults.map((operation) => {
         return operation.run(octokit, context)
     }))
-
-    console.log(results)
 
     // const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
     // const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
