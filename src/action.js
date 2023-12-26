@@ -373,16 +373,10 @@ const postDriftDetectionSummary = async (context, results) => {
     table.push(`|---|---|---|`)
 
     results.map( (result) => {
-      return result.render()
-    }).filter(
-        (result) => {
-            return result !== ""
-        }
-    ).forEach(
-        (result) => {
-            table.push(result)
-        }
-    )
+        return result.render()
+    }).forEach((result) => {
+        table.push(result)
+    })
 
     // for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
     //   const issueNumber = componentsToNewlyCreatedIssues[slug];
