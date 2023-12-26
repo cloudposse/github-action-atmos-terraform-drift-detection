@@ -504,7 +504,7 @@ const runAction = async (octokit, context, parameters) => {
     const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
 
     const results = triageResults.map( (operation) => {
-        operation.run(octokit, context)
+         return operation.run(octokit, context)
     })
 
     console.log(results)
