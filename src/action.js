@@ -374,6 +374,8 @@ const postDriftDetectionSummary = async (context, results) => {
 
     results.map( (result) => {
         return result.render()
+    }).filter((result) => {
+        return result !== ""
     }).forEach((result) => {
         table.push(result)
     })
