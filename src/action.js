@@ -447,19 +447,13 @@ const postDriftDetectionSummary = async (context, results) => {
 }
 
 const postStepSummaries = async (components) => {
-    components.map(
-        (component) => {
-            component.summary()
-        }
-    ).filter(
-        (summary) => {
-            return summary !== ""
-        }
-    ).map(
-        (summary) => {
-            return core.summary.addRaw(summary).write();
-        }
-    )
+    components.map((component) => {
+          return component.summary()
+    }).filter((summary) => {
+        return summary !== ""
+    }).map((summary) => {
+        return core.summary.addRaw(summary).write();
+    })
     // for (let i = 0; i < components.length; i++) {
     //   const slug = components[i];
     //   const file_name = slug.replace("/", "_")
