@@ -60,12 +60,12 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
             return new StackFromIssue(issue);
         })
 
-        // return await listIssues(per_page, page+1, result.concat(result_partition))
-        return result_partition
+        return await listIssues(per_page, page+1, result.concat(result_partition))
     }
 
     let per_page = 100; // Max allowed value per page
     let result = await listIssues(per_page, 1, [])
+    console.log(result)
     return new Map(result.map(
         (stackFromIssue) => {
             return [stackFromIssue.slug, stackFromIssue]
