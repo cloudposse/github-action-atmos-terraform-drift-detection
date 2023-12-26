@@ -65,7 +65,6 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
 
     let per_page = 100; // Max allowed value per page
     let result = await listIssues(per_page, 1, [])
-    console.log(result)
     return new Map(result.map(
         (stackFromIssue) => {
             return [stackFromIssue.slug, stackFromIssue]
@@ -494,6 +493,8 @@ const runAction = async (octokit, context, parameters) => {
 
     const metadataFromPlanArtifacts = readMetadataFromPlanArtifacts(path);
     // const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
+
+    console.log(metadataFromPlanArtifacts)
 
     const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
     let users = assigneeUsers.concat(usersFromTeams);
