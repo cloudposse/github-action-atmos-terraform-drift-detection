@@ -145,8 +145,9 @@ const triage = async (componentsToIssue, componentsToPlanState, users) => {
                 return new Close(issue, state)
             }
         } else if (issue) {
+            // Added resolve to issue
             return new Remove(issue)
-        } else if (state) {
+        } else if (state && ( state.error || state.drifted)) {
             return new Create(state, users)
         } else {
             return new Nothing()
