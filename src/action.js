@@ -125,8 +125,8 @@ const triage = async (componentsToIssue, componentsToPlanState, users) => {
 
     const mode = "full"
     const fullComponents = mode === "full" ?
-        [...Object.keys(componentsToIssue), ...Object.keys(componentsToPlanState)] :
-        [...Object.keys(componentsToPlanState)]
+        [...componentsToIssue.keys(), ...componentsToPlanState.keys()] :
+        [...componentsToPlanState.keys()]
     const slugs = new Set(fullComponents)
 
     const operations = [...slugs].map( (slug) => {
@@ -502,7 +502,7 @@ const runAction = async (octokit, context, parameters) => {
 
     const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
 
-    console.log(...metadataFromPlanArtifacts.keys())
+    console.log(triageResults)
 
     const results = triageResults.map( (operation) => {
         operation.run(octokit, context)
