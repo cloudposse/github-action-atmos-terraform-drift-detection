@@ -439,6 +439,7 @@ const postDriftDetectionSummary = async (context, results) => {
       await core.summary
         .addRaw('# Drift Detection Summary', true)
         .addRaw(table.join("\n"), true)
+        .addRaw("\n", true)
         .write()
     } else {
       await core.summary.addRaw("No drift detected").write();
