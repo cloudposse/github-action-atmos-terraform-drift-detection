@@ -60,18 +60,14 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
             return new StackFromIssue(issue);
         })
 
-        return listIssues(per_page, page+1, result.concat(result_partition))
+        return await listIssues(per_page, page+1, result.concat(result_partition))
     }
 
     let per_page = 100; // Max allowed value per page
 
-    return new Map(listIssues(per_page, 1, []).finally(
-        (result) => {
-            return result.map( (stackFromIssue) => {
-                return [stackFromIssue.slug, stackFromIssue]
-            })
-        }
-    ))
+    return new Map(listIssues(per_page, 1, []).map( (stackFromIssue) => {
+        return [stackFromIssue.slug, stackFromIssue]
+    }))
 }
 
 // const readMetadataFromPlanArtifacts = async () => {
