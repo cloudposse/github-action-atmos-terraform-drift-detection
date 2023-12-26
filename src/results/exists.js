@@ -1,8 +1,8 @@
 class Exists {
-    constructor(runId, repository, newIssue, state) {
+    constructor(runId, repository, newIssueNumber, state) {
         this.runId = runId;
         this.repository = repository;
-        this.newIssue = newIssue;
+        this.newIssueNumber = newIssueNumber;
         this.state = state;
     }
 
@@ -11,7 +11,7 @@ class Exists {
         const orgName = this.repository.owner;
         const repo = this.repository.repo;
         const runId = this.runId;
-        const issueNumber = this.newIssue.data.number;
+        const issueNumber = this.newIssueNumber;
         const component = `[${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
         const state = this.state.error ?
             '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :

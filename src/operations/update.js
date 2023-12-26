@@ -24,7 +24,7 @@ class Update {
 
         core.info(`Updated issue: ${issueNumber}`);
 
-        return new Exists(context.runId, repository, this.issue, this.state)
+        return new Exists(context.runId, repository, issueNumber, this.state)
     }
 
     summary() {
