@@ -69,9 +69,9 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
         (result) => {
             return result.map( (stackFromIssue) => {
                 return [stackFromIssue.slug, stackFromIssue]
-            }
+            })
         }
-    )))
+    ))
 }
 
 // const readMetadataFromPlanArtifacts = async () => {
