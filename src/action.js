@@ -503,11 +503,11 @@ const runAction = async (octokit, context, parameters) => {
 
     const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
 
-    console.log(triageResults)
-
     const results = triageResults.map( (operation) => {
         operation.run(octokit, context)
     })
+
+    console.log(results)
 
     // const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
     // const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
