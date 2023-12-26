@@ -2,8 +2,13 @@ const fs = require('fs');
 const core = require('@actions/core');
 const artifact = require('@actions/artifact');
 const {StackFromIssue} = require("./models/stacks_from_issues");
+const {Skip} = require("./operations/skip");
+const {Update} = require("./operations/update");
+const {Close} = require("./operations/close");
+const {Remove} = require("./operations/remove");
+const {Create} = require("./operations/create");
+const {Nothing} = require("./operations/nothing");
 
-const {Skip, Update, Close, Remove, Create, Nothing} = require("./operations");
 
 // const downloadArtifacts = async (artifactName) => {
 //     try {
