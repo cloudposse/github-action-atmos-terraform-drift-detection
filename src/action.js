@@ -494,8 +494,6 @@ const runAction = async (octokit, context, parameters) => {
     const metadataFromPlanArtifacts = readMetadataFromPlanArtifacts(path);
     // const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
 
-    console.log(metadataFromPlanArtifacts)
-
     const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
@@ -504,6 +502,8 @@ const runAction = async (octokit, context, parameters) => {
 
     const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
 
+    console.log(triageResults)
+    
     const results = triageResults.map( (operation) => {
         operation.run(octokit, context)
     })
