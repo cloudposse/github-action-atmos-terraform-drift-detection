@@ -123,11 +123,11 @@ const readMetadataFromPlanArtifacts = (path) => {
 
 const triage = async (componentsToIssue, componentsToPlanState, users) => {
 
-    let mode = "full"
-    let fullComponents = mode === "full" ?
+    const mode = "full"
+    const fullComponents = mode === "full" ?
         [...Object.keys(componentsToIssue), ...Object.keys(componentsToPlanState)] :
         [...Object.keys(componentsToPlanState)]
-    let slugs = new Set(fullComponents)
+    const slugs = new Set(fullComponents)
 
     const operations = slugs.map( (slug) => {
         const issue = componentsToIssue.get(slug)
