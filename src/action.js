@@ -129,7 +129,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users) => {
         [...Object.keys(componentsToPlanState)]
     const slugs = new Set(fullComponents)
 
-    const operations = slugs.map( (slug) => {
+    const operations = [...slugs].map( (slug) => {
         const issue = componentsToIssue.get(slug)
         const state = componentsToPlanState.get(slug)
         if (issue && state) {
