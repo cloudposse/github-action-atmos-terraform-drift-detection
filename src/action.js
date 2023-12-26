@@ -461,7 +461,7 @@ const postStepSummaries = async (components) => {
         (summary) => {
             return core.summary.addRaw(summary).write();
         }
-    ).all()
+    )
     // for (let i = 0; i < components.length; i++) {
     //   const slug = components[i];
     //   const file_name = slug.replace("/", "_")
