@@ -1,7 +1,7 @@
 name: "Test - Max opened issues"
 
 on:
-  pull_request: {}
+#  pull_request: {}
   workflow_dispatch: {}
 
 env:
