@@ -37,13 +37,14 @@ const downloadArtifacts = (artifactName) => {
 };
 
 
-const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
+const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
     const repository = context.repo;
 
     const listIssues = async (per_page, page, result) => {
         const response = await octokit.rest.issues.listForRepo({
             ...repository,
             state: 'open',
+            labels: labels,
             per_page,
             page
         });
@@ -483,7 +484,7 @@ const runAction = async (octokit, context, parameters) => {
 
     const path = await downloadArtifacts("metadata");
 
-    const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
+    const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
     // const componentsToIssueNumber = openGitHubIssuesToComponents.componentsToIssues;
     // const componentsToIssueMetadata = openGitHubIssuesToComponents.componentsToMetadata;
 
