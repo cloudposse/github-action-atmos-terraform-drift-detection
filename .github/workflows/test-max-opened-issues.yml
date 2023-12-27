@@ -1,0 +1,98 @@
+name: "Test - Max opened issues"
+
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+
+env:
+  AWS_REGION: us-east-2
+
+# Permissions required for assuming AWS identity
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup
+        run: echo "Do setup"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: metadata
+          path: ./tests/fixtures/metadata
+          retention-days: 1
+
+  test:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Plan Atmos Component
+        id: current
+        uses: ./
+        with:
+          max-opened-issues: '4'
+          labels: "test-changes-exists"
+          token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
+
+    outputs:
+      result: ${{ steps.current.outcome }}
+
+  assert:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: nick-fields/assert-action@v1
+        with:
+          expected: 'success'
+          actual: "${{ needs.test.outputs.result }}"
+
+      - name: Find all issues
+        id: issues
+        uses: lee-dohm/select-matching-issues@v1
+        with:
+          query: 'label:test-changes-exists is:open'
+          token: ${{ github.token }}
+
+      - name: Close found issues
+        id: test
+        run: |
+          echo "count=$(cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' echo "{}" | wc -l )" >> $GITHUB_OUTPUT
+
+      - uses: nick-fields/assert-action@v1
+        with:
+          expected: '4'
+          actual: "${{ steps.test.outputs.count }}"
+
+  teardown:
+    runs-on: ubuntu-latest
+    needs: [assert]
+    if: ${{ always() }}
+    steps:
+      - name: Tear down
+        run: echo "Do Tear down"
+
+      - name: Find all issues
+        id: issues
+        uses: lee-dohm/select-matching-issues@v1
+        with:
+          query: 'label:test-changes-exists is:open'
+          token: ${{ github.token }}
+
+      - name: Close found issues
+        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
+        env:
+          GH_TOKEN: ${{ github.token }}

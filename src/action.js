@@ -121,13 +121,16 @@ const readMetadataFromPlanArtifacts = (path) => {
 }
 
 
-const triage = async (componentsToIssue, componentsToPlanState, users, labels) => {
+const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues) => {
 
     const mode = "full"
     const fullComponents = mode === "full" ?
         [...componentsToIssue.keys(), ...componentsToPlanState.keys()] :
         [...componentsToPlanState.keys()]
     const slugs = new Set(fullComponents)
+
+    // const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
+    // const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
 
     const operations = [...slugs].map( (slug) => {
         const issue = componentsToIssue.get(slug)
@@ -472,7 +475,7 @@ const postStepSummaries = async (components) => {
  */
 const runAction = async (octokit, context, parameters) => {
     const {
-        // maxOpenedIssues = 0,
+        maxOpenedIssues = 0,
         assigneeUsers = [],
         assigneeTeams = [],
         labels        = []
@@ -491,7 +494,7 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels);
+    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels, maxOpenedIssues);
 
     const results = await Promise.all(triageResults.map((operation) => {
         return operation.run(octokit, context)
