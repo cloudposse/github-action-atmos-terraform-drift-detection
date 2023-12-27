@@ -159,7 +159,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
     })
 
     const openedIssuesCounts = operations.filter( (operation) => {
-        return operation instanceof Create || operation instanceof Update
+        return operation instanceof Update
     }).length
 
     const closedIssuesCount = operations.filter( (operation) => {
