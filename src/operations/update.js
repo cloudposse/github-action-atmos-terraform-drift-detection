@@ -3,9 +3,10 @@ const {readFileSync} = require("fs");
 const {Exists} = require("../results/exists");
 
 class Update {
-    constructor(issue, state) {
+    constructor(issue, state, labels) {
         this.issue = issue;
         this.state = state;
+        this.labels = labels;
     }
 
     async run(octokit, context) {
@@ -15,11 +16,13 @@ class Update {
         const file_name = slug.replace("/", "_")
         const issueDescription = readFileSync(`issue-description-${file_name}.md`, 'utf8');
         const issueNumber = this.issue.number;
+        const label = this.state.error ? "error" : "drift"
 
         octokit.rest.issues.update({
             ...repository,
             issue_number: issueNumber,
-            body: issueDescription
+            body: issueDescription,
+            labels: [label].concat(this.labels)
         });
 
         core.info(`Updated issue: ${issueNumber}`);

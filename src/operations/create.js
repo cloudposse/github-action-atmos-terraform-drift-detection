@@ -3,9 +3,10 @@ const {NewCreated} = require("../results/new-created");
 const {readFileSync} = require("fs");
 
 class Create {
-    constructor(state, users) {
+    constructor(state, users, labels) {
         this.state = state;
         this.users = users;
+        this.labels = labels;
     }
 
     async run(octokit, context) {
@@ -22,7 +23,7 @@ class Create {
             ...repository,
             title: issueTitle,
             body: issueDescription,
-            labels: [label]
+            labels: [label].concat(this.labels)
         });
 
         const issueNumber = newIssue.data.number;

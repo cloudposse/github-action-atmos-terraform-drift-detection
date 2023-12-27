@@ -121,7 +121,7 @@ const readMetadataFromPlanArtifacts = (path) => {
 }
 
 
-const triage = async (componentsToIssue, componentsToPlanState, users) => {
+const triage = async (componentsToIssue, componentsToPlanState, users, labels) => {
 
     const mode = "full"
     const fullComponents = mode === "full" ?
@@ -139,7 +139,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users) => {
                 if (currentSHA === commitSHA) {
                     return new Skip(issue, state)
                 } else {
-                    return new Update(issue, state)
+                    return new Update(issue, state, labels)
                 }
             } else {
                 return new Close(issue, state)
@@ -148,7 +148,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users) => {
             // Added resolve to issue
             return new Remove(issue)
         } else if (state && ( state.error || state.drifted)) {
-            return new Create(state, users)
+            return new Create(state, users, labels)
         } else {
             return new Nothing()
         }
@@ -475,7 +475,7 @@ const runAction = async (octokit, context, parameters) => {
         // maxOpenedIssues = 0,
         assigneeUsers = [],
         assigneeTeams = [],
-        // labels        = []
+        labels        = []
     } = parameters;
 
     const path = await downloadArtifacts("metadata");
@@ -491,7 +491,7 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
+    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels);
 
     const results = await Promise.all(triageResults.map((operation) => {
         return operation.run(octokit, context)
