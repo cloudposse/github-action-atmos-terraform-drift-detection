@@ -44,7 +44,7 @@ jobs:
         id: current
         uses: ./
         with:
-          max-opened-issues: '4'
+          max-opened-issues: '3'
           labels: "test-max-opened-issues"
           token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
 
@@ -75,7 +75,7 @@ jobs:
 
       - uses: nick-fields/assert-action@v1
         with:
-          expected: '4'
+          expected: '3'
           actual: "${{ steps.test.outputs.count }}"
 
   teardown:
