@@ -122,7 +122,7 @@ const readMetadataFromPlanArtifacts = (path) => {
 }
 
 
-const triage = async (componentsToIssue, componentsToPlanState, users, labels) => {
+const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues) => {
 
     const mode = "full"
     const fullComponents = mode === "full" ?
@@ -157,6 +157,33 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels) =
             return new Nothing()
         }
     })
+
+    const openedIssuesCounts = operations.filter( (operation) => {
+        return operation instanceof Create || operation instanceof Update
+    }).length
+
+    const closedIssuesCount = operations.filter( (operation) => {
+        return operation instanceof Close || operation instanceof Remove
+    }).length
+
+    const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - openedIssuesCounts + closedIssuesCount);
+    let numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, openedIssuesCounts);
+
+    const result = operations.map((operation) => {
+        if ( operation instanceof Create  || operation instanceof Update ) {
+            if (numOfIssuesToCreate > 0) {
+                numOfIssuesToCreate -= 1
+            }
+        }
+
+        if ( operation instanceof Create && numOfIssuesToCreate === 0 ) {
+            return new Skip(operation.issue, operation.state, maxOpenedIssues)
+        }
+
+        return operation
+    })
+
+    return result
 
     // const componentsCandidatesToCreateIssue = [];
     // const componentsCandidatesToCloseIssue = [];
@@ -220,7 +247,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels) =
     //         }
     //     }
     // }
-    return operations
+    // return operations
     // return {
     //     componentsCandidatesToCreateIssue: componentsCandidatesToCreateIssue,
     //     componentsToUpdateExistingIssue: componentsToUpdateExistingIssue,
