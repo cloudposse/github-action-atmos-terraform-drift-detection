@@ -446,12 +446,13 @@ const postDriftDetectionSummary = async (context, results) => {
     }
 }
 
-const postStepSummaries = async (components) => {
-    components.map((component) => {
+const postStepSummaries = (components) => {
+    const test = components.map((component) => {
           return component.summary()
     }).filter((summary) => {
         return summary !== ""
     })
+    console.log(test);
     //     .forEach((summary) => {
     //     core.summary.addRaw(summary).write();
     // })
@@ -514,7 +515,7 @@ const runAction = async (octokit, context, parameters) => {
 
     await postDriftDetectionSummary(context, results);
 
-    await postStepSummaries(triageResults);
+    postStepSummaries(triageResults);
 };
 
 module.exports = {
