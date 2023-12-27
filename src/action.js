@@ -490,8 +490,6 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-
-
     const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users);
 
     const results = await Promise.all(triageResults.map((operation) => {
@@ -514,6 +512,8 @@ const runAction = async (octokit, context, parameters) => {
     // await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
     await postDriftDetectionSummary(context, results);
+
+    console.log(triageResults);
 
     await postStepSummaries(triageResults);
 };
