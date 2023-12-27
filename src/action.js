@@ -174,21 +174,21 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
     console.log(closedIssuesCount);
     console.log(numOfIssuesToCreate);
 
-    // const result = operations.map((operation) => {
-    //     if ( operation instanceof Create  || operation instanceof Update ) {
-    //         if (numOfIssuesToCreate > 0) {
-    //             numOfIssuesToCreate -= 1
-    //         }
-    //     }
-    //
-    //     if ( operation instanceof Create && numOfIssuesToCreate === 0 ) {
-    //         return new Skip(operation.issue, operation.state, maxOpenedIssues)
-    //     }
-    //
-    //     return operation
-    // })
+    const result = operations.map((operation) => {
+        if ( operation instanceof Create  || operation instanceof Update ) {
+            if (numOfIssuesToCreate > 0) {
+                numOfIssuesToCreate -= 1
+            }
+        }
 
-    return operations
+        if ( operation instanceof Create && numOfIssuesToCreate === 0 ) {
+            return new Skip(operation.issue, operation.state, maxOpenedIssues)
+        }
+
+        return operation
+    })
+
+    return result
 
     // const componentsCandidatesToCreateIssue = [];
     // const componentsCandidatesToCloseIssue = [];
