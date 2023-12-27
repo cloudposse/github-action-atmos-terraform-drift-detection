@@ -447,13 +447,14 @@ const postDriftDetectionSummary = async (context, results) => {
 }
 
 const postStepSummaries = async (components) => {
-    await Promise.all(components.map((component) => {
-          return component.summary()
+    const summaries = components.map((component) => {
+        return component.summary()
     }).filter((summary) => {
         return summary !== ""
-    }).map((summary) => {
-        return core.summary.addRaw(summary).write();
-    }))
+    })
+    for (const summary of summaries) {
+        await core.summary.addRaw(summary, true).write();
+    }
     // for (let i = 0; i < components.length; i++) {
     //   const slug = components[i];
     //   const file_name = slug.replace("/", "_")
