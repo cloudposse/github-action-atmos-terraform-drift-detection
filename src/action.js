@@ -447,15 +447,13 @@ const postDriftDetectionSummary = async (context, results) => {
 }
 
 const postStepSummaries = (components) => {
-    const test = components.map((component) => {
+    components.map((component) => {
           return component.summary()
     }).filter((summary) => {
         return summary !== ""
+    }).forEach((summary) => {
+        core.summary.addRaw(summary).write();
     })
-    console.log(test);
-    //     .forEach((summary) => {
-    //     core.summary.addRaw(summary).write();
-    // })
     // for (let i = 0; i < components.length; i++) {
     //   const slug = components[i];
     //   const file_name = slug.replace("/", "_")
