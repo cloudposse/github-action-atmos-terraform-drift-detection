@@ -121,7 +121,7 @@ const readMetadataFromPlanArtifacts = (path) => {
 }
 
 
-const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues) => {
+const triage = async (componentsToIssue, componentsToPlanState, users, labels) => {
 
     const mode = "full"
     const fullComponents = mode === "full" ?
