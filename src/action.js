@@ -175,17 +175,17 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
     console.log(numOfIssuesToCreate);
 
     const result = operations.map((operation) => {
-        if ( operation instanceof Create  || operation instanceof Update ) {
+        let result = operation instanceof Create && numOfIssuesToCreate === 0 ?
+            new Skip(operation.issue, operation.state, maxOpenedIssues) :
+            operation;
+
+        if ( operation instanceof Create || operation instanceof Update ) {
             if (numOfIssuesToCreate > 0) {
                 numOfIssuesToCreate -= 1
             }
         }
 
-        if ( operation instanceof Create && numOfIssuesToCreate === 0 ) {
-            return new Skip(operation.issue, operation.state, maxOpenedIssues)
-        }
-
-        return operation
+        return result
     })
 
     return result
