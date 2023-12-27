@@ -451,9 +451,10 @@ const postStepSummaries = async (components) => {
           return component.summary()
     }).filter((summary) => {
         return summary !== ""
-    }).map((summary) => {
-        return core.summary.addRaw(summary).write();
     })
+    //     .forEach((summary) => {
+    //     core.summary.addRaw(summary).write();
+    // })
     // for (let i = 0; i < components.length; i++) {
     //   const slug = components[i];
     //   const file_name = slug.replace("/", "_")
@@ -512,8 +513,6 @@ const runAction = async (octokit, context, parameters) => {
     // await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
 
     await postDriftDetectionSummary(context, results);
-
-    console.log(triageResults);
 
     await postStepSummaries(triageResults);
 };
