@@ -258,7 +258,11 @@ const createIssues = async (octokit, context, maxOpenedIssues, labels, users, co
     for (let i = 0; i < numOfIssuesToCreate; i++) {
         const slug = componentsCandidatesToCreateIssue[i];
         const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
-        const file_name = slug.replace("/", "_")
+        const file_name = slug.replace(/\//g, "_")
+        if (!fs.existsSync(`issue-description-${file_name}.md`)) {
+            core.error(`Failed to create issue for component ${slug} because file "issue-description-${file_name}.md" does not exist`);
+            continue;
+        }
         const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
 
         const label  = erroredComponents.includes(slug) ? "error" : "drift"
@@ -299,7 +303,7 @@ const updateIssues = async (octokit, context, componentsToIssues, componentsToUp
 
     for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
       const slug = componentsToUpdateExistingIssue[i];
-      const file_name = slug.replace("/", "_")
+      const file_name = slug.replace(/\//g, "_")
       const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
       const issueNumber = componentsToIssues[slug].number;
 
@@ -390,7 +394,7 @@ const postStepSummaries = async (driftingComponents, erroredComponents) => {
     const components = driftingComponents.concat(erroredComponents)
     for (let i = 0; i < components.length; i++) {
       const slug = components[i];
-      const file_name = slug.replace("/", "_")
+      const file_name = slug.replace(/\//g, "_")
       const file = `step-summary-${file_name}.md`;
       const content = fs.readFileSync(file, 'utf-8');
 
