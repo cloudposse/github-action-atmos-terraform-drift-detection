@@ -82,7 +82,7 @@ const readMetadataFromPlanArtifacts = (path) => {
 
 const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues) => {
 
-    const mode = "partial" // full or partial
+    const mode = "full"
     const fullComponents = mode === "full" ?
         [...componentsToIssue.keys(), ...componentsToPlanState.keys()] :
         [...componentsToPlanState.keys()]
