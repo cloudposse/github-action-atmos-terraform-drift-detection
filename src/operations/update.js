@@ -14,6 +14,7 @@ class Update {
 
         const slug = this.state.slug;
         const file_name = slug.replace("/", "_")
+        const issueTitle = this.state.error ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const issueDescription = readFileSync(`issue-description-${file_name}.md`, 'utf8');
         const issueNumber = this.issue.number;
         const label = this.state.error ? "error" : "drift"
@@ -21,6 +22,7 @@ class Update {
         octokit.rest.issues.update({
             ...repository,
             issue_number: issueNumber,
+            title: issueTitle,
             body: issueDescription,
             labels: [label].concat(this.labels)
         });
