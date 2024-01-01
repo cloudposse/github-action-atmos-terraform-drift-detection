@@ -1,13 +1,13 @@
 class Removed {
-    constructor(runId, repository, newIssueNumber, state) {
+    constructor(runId, repository, newIssueNumber, issue) {
         this.runId = runId;
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
-        this.state = state;
+        this.issue = issue;
     }
 
     render() {
-        const slug = this.state.slug;
+        const slug = this.issue.slug;
         const orgName = this.repository.owner;
         const repo = this.repository.repo;
         const runId = this.runId;

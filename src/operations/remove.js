@@ -34,7 +34,7 @@ class Remove {
 
         core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
 
-        return new Removed(github.context.runId, repository, issueNumber, this.state);
+        return new Removed(github.context.runId, repository, issueNumber, this.issue);
     }
 
     summary() {
