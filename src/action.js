@@ -80,10 +80,9 @@ const readMetadataFromPlanArtifacts = (path) => {
     return new Map(result)
 }
 
-const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues) => {
+const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues, processAll) => {
 
-    const mode = "full"
-    const fullComponents = mode === "full" ?
+    const fullComponents = processAll ?
         [...componentsToIssue.keys(), ...componentsToPlanState.keys()] :
         [...componentsToPlanState.keys()]
     const slugs = [...new Set(fullComponents)]  // get unique set
@@ -210,7 +209,8 @@ const runAction = async (octokit, context, parameters) => {
         maxOpenedIssues = 0,
         assigneeUsers = [],
         assigneeTeams = [],
-        labels        = []
+        labels        = [],
+        processAll  = false,
     } = parameters;
 
     const metadataFromPlanArtifacts= await downloadArtifacts("metadata").then(
@@ -225,7 +225,7 @@ const runAction = async (octokit, context, parameters) => {
     let users = assigneeUsers.concat(usersFromTeams);
     users = [...new Set(users)]; // get unique set
 
-    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels, maxOpenedIssues);
+    const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels, maxOpenedIssues, processAll);
 
     const results = await Promise.all(triageResults.map((operation) => {
         return operation.run(octokit, context)
