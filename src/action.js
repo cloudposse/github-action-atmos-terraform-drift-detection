@@ -116,7 +116,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
         return operation instanceof Close || operation instanceof Remove
     }).length
 
-    const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - openedIssuesCounts + closedIssuesCount);
+    const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - openedIssuesCounts);
     let numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, maxOpenedIssues);
 
     console.log(openedIssuesCounts)
