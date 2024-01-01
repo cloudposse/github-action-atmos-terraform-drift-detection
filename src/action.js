@@ -129,7 +129,7 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
             new Skip(operation.issue, operation.state, maxOpenedIssues) :
             operation;
 
-        if (operation instanceof Create || operation instanceof Update) {
+        if (operation instanceof Create) {
             if (numOfIssuesToCreate > 0) {
                 numOfIssuesToCreate -= 1
             }
