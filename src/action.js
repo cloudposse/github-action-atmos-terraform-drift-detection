@@ -213,11 +213,13 @@ const runAction = async (octokit, context, parameters) => {
         labels        = []
     } = parameters;
 
-    const path = await downloadArtifacts("metadata");
+    const metadataFromPlanArtifacts= await downloadArtifacts("metadata").then(
+        (path) => {
+            return readMetadataFromPlanArtifacts(path)
+        }
+    )
 
     const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
-
-    const metadataFromPlanArtifacts = readMetadataFromPlanArtifacts(path);
 
     const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
     let users = assigneeUsers.concat(usersFromTeams);
