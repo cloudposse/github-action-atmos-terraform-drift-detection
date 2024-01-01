@@ -177,6 +177,8 @@ const postDriftDetectionSummary = async (context, results) => {
         table.push(result)
     })
 
+    console.log(table.length)
+
     if (table.length > 1) {
       await core.summary
         .addRaw('# Drift Detection Summary', true)
