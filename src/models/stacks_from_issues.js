@@ -4,9 +4,8 @@ const getMetadataFromIssueBody = (body) => {
 
     if (matched && matched[1]) {
         return JSON.parse(matched[1]);
-    } else {
-        throw new Error("Invalid metadata in the issue description");
     }
+    return null
 }
 
 class StackFromIssue {
@@ -21,5 +20,6 @@ class StackFromIssue {
 
 
 module.exports = {
-    StackFromIssue
+    StackFromIssue,
+    getMetadataFromIssueBody
 }

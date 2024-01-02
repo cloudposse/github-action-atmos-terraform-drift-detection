@@ -1,7 +1,7 @@
 const fs = require('fs');
 const core = require('@actions/core');
 const artifact = require('@actions/artifact');
-const {StackFromIssue} = require("./models/stacks_from_issues");
+const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
 const {Update} = require("./operations/update");
 const {Close} = require("./operations/close");
@@ -39,6 +39,8 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
 
         const driftDetectionIssues = response.data.filter(
             issue => issue.title.startsWith('Drift Detected in') || issue.title.startsWith('Failure Detected in')
+        ).filter(
+            issue => getMetadataFromIssueBody(issue.body) !== null
         );
 
         const result_partition = driftDetectionIssues.map(issue => {
