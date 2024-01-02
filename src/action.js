@@ -112,30 +112,20 @@ const triage = async (componentsToIssue, componentsToPlanState, users, labels, m
         return operation instanceof Update
     }).length
 
-    const closedIssuesCount = operations.filter((operation) => {
-        return operation instanceof Close || operation instanceof Remove
-    }).length
-
     const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - openedIssuesCounts);
+    // If maxOpenedIssues is negative then it will not limit the number of issues to create
     let numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, maxOpenedIssues);
 
-    console.log(openedIssuesCounts)
-    console.log(closedIssuesCount)
-    console.log(numberOfMaximumPotentialIssuesThatCanBeCreated)
-    console.log(numOfIssuesToCreate)
-
     return operations.map((operation) => {
-        const newOperation = operation instanceof Create && numOfIssuesToCreate === 0 ?
-            new Skip(operation.issue, operation.state, maxOpenedIssues) :
-            operation;
-
         if (operation instanceof Create) {
             if (numOfIssuesToCreate > 0) {
                 numOfIssuesToCreate -= 1
+            } else if (numOfIssuesToCreate === 0) {
+                return new Skip(operation.issue, operation.state, maxOpenedIssues);
             }
         }
 
-        return newOperation
+        return operation
     })
 }
 
