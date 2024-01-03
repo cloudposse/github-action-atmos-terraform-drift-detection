@@ -57,7 +57,7 @@ class Create {
         const title = this.state.error ?
           `## Plan Failed for \`${component}\` in \`${stack}\`` :
           `## Changes Found for \`${component}\` in \`${stack}\``;
-        const body = `We have to limit summary because of GitHub limitation. Please check the logs for more details.`
+        const body = `We have to hide the summary because of GitHub limitation. Please check the logs for more details.`
         return [title, body].join("\n");
     }
 }

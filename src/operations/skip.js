@@ -22,9 +22,11 @@ class Skip {
     shortSummary() {
         const component = this.state.metadata.component;
         const stack = this.state.metadata.stack;
-        return this.state.error ?
+        const title = this.state.error ?
           `## Plan Failed for \`${component}\` in \`${stack}\`` :
           `## Changes Found for \`${component}\` in \`${stack}\``;
+        const body = `We have to hide the summary because of GitHub limitation. Please check the logs for more details.`
+        return [title, body].join("\n");
     }
 }
 
