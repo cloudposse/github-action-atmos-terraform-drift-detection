@@ -186,7 +186,7 @@ const driftDetectionTable = (results) => {
 const postStepSummaries = async (table, components) => {
   // GitHub limits summary per step to 1MB
   // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits
-  const maximumLength = Math.pow(2, 20);
+  const maximumLength = Math.pow(2, 5);
   let totalLength = 0;
   let currentLength = 0;
 
