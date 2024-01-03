@@ -40,6 +40,9 @@ class Remove {
     summary() {
         return "";
     }
+    shortSummary() {
+        return "";
+    }
 }
 
 

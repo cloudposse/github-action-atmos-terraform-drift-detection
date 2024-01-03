@@ -37,6 +37,14 @@ class Update {
         const file = `step-summary-${file_name}.md`;
         return readFileSync(file, 'utf-8');
     }
+
+    shortSummary() {
+        const component = this.state.metadata.component;
+        const stack = this.state.metadata.stack;
+        return this.state.error ?
+          `## Plan Failed for \`${component}\` in \`${stack}\`` :
+          `## Changes Found for \`${component}\` in \`${stack}\``;
+    }
 }
 
 

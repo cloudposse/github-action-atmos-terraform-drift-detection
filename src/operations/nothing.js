@@ -11,6 +11,10 @@ class Nothing {
     summary() {
         return "";
     }
+
+    shortSummary() {
+        return "";
+    }
 }
 
 

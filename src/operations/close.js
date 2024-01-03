@@ -43,6 +43,10 @@ class Close {
         return "";
     }
 
+    shortSummary() {
+        return "";
+    }
+
 }
 
 
