@@ -21,6 +21,10 @@ inputs:
     description: "Comma-separated list of additional labels to assign issues to."
     required: false
     default: ""
+  process-all:
+    description: "Process all issues or only the ones that relates to affected stacks. Default: false"
+    required: false
+    default: "false"
   token:
     description:
       Used to pull node distributions for Atmos from Cloud Posse's GitHub repository. Since there's a default, this is typically

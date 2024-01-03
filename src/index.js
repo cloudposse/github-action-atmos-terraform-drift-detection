@@ -10,6 +10,7 @@ try {
     const assigneeUsers = parseCsvInput(core.getInput('assignee-users'));
     const assigneeTeams = parseCsvInput(core.getInput('assignee-teams'));
     const labels        = parseCsvInput(core.getInput('labels'));
+    const processAll    = core.getBooleanInput('process-all');
 
     // Get octokit
     const octokit = github.getOctokit(token);
@@ -19,7 +20,8 @@ try {
         maxOpenedIssues,
         assigneeUsers,
         assigneeTeams,
-        labels
+        labels,
+        processAll
     });
 } catch (error) {
     core.setFailed(error.message);
