@@ -19,7 +19,7 @@ class NewCreated {
 
         const comments = this.state.error ?
             `Failure detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})` :
-            `New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`;
+            `Drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber})`;
 
         return [component, state, comments].join(" | ");
     }

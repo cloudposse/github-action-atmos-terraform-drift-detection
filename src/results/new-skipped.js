@@ -19,7 +19,7 @@ class NewSkipped {
 
         const comments = this.state.error ?
             `Failure detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached` :
-            `New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`;
+            `Drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached`;
 
         return [component, state, comments].join(" | ");
     }
