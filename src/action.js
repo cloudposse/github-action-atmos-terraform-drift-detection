@@ -176,7 +176,6 @@ const driftDetectionTable = (results) => {
   }
 
   return ["No drift detected"]
-
 }
 
 const postStepSummaries = async (table, components) => {
