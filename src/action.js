@@ -61,7 +61,7 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
   ))
 }
 
-const readMetadataFromPlanArtifacts = (path) => {
+const mapArtifactToComponents = (path) => {
   const files = fs.readdirSync(path);
   const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
   const result = metadataFiles.map(
@@ -75,16 +75,16 @@ const readMetadataFromPlanArtifacts = (path) => {
   return new Map(result)
 }
 
-const triage = async (componentsToIssue, componentsToPlanState, users, labels, maxOpenedIssues, processAll) => {
+const getOperationsList = async (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
 
-  const fullComponents = processAll ?
-    [...componentsToIssue.keys(), ...componentsToPlanState.keys()] :
-    [...componentsToPlanState.keys()]
-  const slugs = [...new Set(fullComponents)]  // get unique set
+  const stacks = processAll ?
+    [...stacksFromIssues.keys(), ...stacksFromArtifact.keys()] :
+    [...stacksFromArtifact.keys()]
+  const slugs = [...new Set(stacks)]  // get unique set
 
   const operations = slugs.map((slug) => {
-    const issue = componentsToIssue.get(slug)
-    const state = componentsToPlanState.get(slug)
+    const issue = stacksFromIssues.get(slug)
+    const state = stacksFromArtifact.get(slug)
     if (issue && state) {
       if (state.error || state.drifted) {
         const commitSHA = issue.metadata.commitSHA;
@@ -154,11 +154,12 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
   return users;
 }
 
-
 const driftDetectionTable = (results) => {
 
-  const table = [`| Component | State | Comments |`];
-  table.push(`|---|---|---|`)
+  const table = [
+    `| Component | State | Comments |`,
+    `|-----------|-------|----------|`
+  ];
 
   results.map((result) => {
     return result.render()
@@ -175,7 +176,7 @@ const driftDetectionTable = (results) => {
   return ["No drift detected"]
 }
 
-const postStepSummaries = async (table, components) => {
+const postSummaries = async (table, components) => {
   // GitHub limits summary per step to 1MB
   // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits
   const maximumLength = Math.pow(2, 20);
@@ -228,26 +229,26 @@ const runAction = async (octokit, context, parameters) => {
     processAll = false,
   } = parameters;
 
-  const metadataFromPlanArtifacts = await downloadArtifacts("metadata").then(
+  const stacksFromArtifact = await downloadArtifacts("metadata").then(
     (path) => {
-      return readMetadataFromPlanArtifacts(path)
+      return mapArtifactToComponents(path)
     }
   )
 
-  const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
+  const stacksFromIssues = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
 
   const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
   let users = assigneeUsers.concat(usersFromTeams);
   users = [...new Set(users)]; // get unique set
 
-  const triageResults = await triage(openGitHubIssuesToComponents, metadataFromPlanArtifacts, users, labels, maxOpenedIssues, processAll);
+  const operations = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll);
 
-  const results = await Promise.all(triageResults.map((operation) => {
-    return operation.run(octokit, context)
+  const results = await Promise.all(operations.map((item) => {
+    return item.run(octokit, context)
   }))
 
   const table = driftDetectionTable(results);
-  await postStepSummaries(table, triageResults);
+  await postSummaries(table, operations);
 }
 
 module.exports = {
