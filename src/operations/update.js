@@ -45,7 +45,7 @@ class Update {
         const title = this.state.error ?
           `## Plan Failed for \`${component}\` in \`${stack}\`` :
           `## Changes Found for \`${component}\` in \`${stack}\``;
-        const body = `We have to hide the summary because of GitHub limitation. Please check the logs for more details.`
+        const body = `Summary is unavailable due to [GitHub size limitation](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits) on job summaries. Please check the GitHub Action run logs for more details.`
         return [title, body].join("\n");
     }
 }
