@@ -1,7 +1,7 @@
 const core = require("@actions/core");
 const {NewCreated} = require("../results/new-created");
 const {readFileSync} = require("fs");
-const {getFileName} = require("../action");
+const {getFileName} = require("../utils");
 
 class Create {
     constructor(state, users, labels) {

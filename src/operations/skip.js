@@ -1,6 +1,6 @@
 const {NewSkipped} = require("../results/new-skipped");
 const {readFileSync} = require("fs");
-const {getFileName} = require("../action");
+const {getFileName} = require("../utils");
 
 class Skip {
     constructor(issue, state, maxNumberOpenedIssues) {

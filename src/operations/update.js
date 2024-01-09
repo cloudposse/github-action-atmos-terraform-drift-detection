@@ -1,7 +1,7 @@
 const core = require("@actions/core");
 const {readFileSync} = require("fs");
 const {Exists} = require("../results/exists");
-const {getFileName} = require("../action");
+const {getFileName} = require("../utils");
 
 class Update {
     constructor(issue, state, labels) {

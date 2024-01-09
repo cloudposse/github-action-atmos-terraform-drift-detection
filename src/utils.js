@@ -16,7 +16,13 @@ const parseIntInput = (valueString, defaultValue = 0) => {
     return value;
 };
 
+const getFileName = (slug) => {
+    return slug.replace(/\//g, "_");
+};
+
+
 module.exports = {
     parseCsvInput,
-    parseIntInput
+    parseIntInput,
+    getFileName
 };

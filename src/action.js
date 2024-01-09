@@ -10,9 +10,6 @@ const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
 
-const getFileName = (slug) => {
-  return slug.replace(/\//g, "_");
-}
 
 const downloadArtifacts = (artifactName) => {
   const artifactClient = artifact.create()
@@ -254,6 +251,5 @@ const runAction = async (octokit, context, parameters) => {
 }
 
 module.exports = {
-  runAction,
-  getFileName
+  runAction
 }
