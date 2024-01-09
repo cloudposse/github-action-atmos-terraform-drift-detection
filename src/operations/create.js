@@ -1,6 +1,7 @@
 const core = require("@actions/core");
 const {NewCreated} = require("../results/new-created");
 const {readFileSync} = require("fs");
+const {getFileName} = require("../action");
 
 class Create {
     constructor(state, users, labels) {
@@ -14,7 +15,7 @@ class Create {
 
         const slug = this.state.slug;
         const issueTitle = this.state.error ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
-        const file_name = slug.replace("/", "_")
+        const file_name = getFileName(slug);
         const issueDescription = readFileSync(`issue-description-${file_name}.md`, 'utf8');
 
         const label = this.state.error ? "error" : "drift"
@@ -46,7 +47,7 @@ class Create {
     }
 
     summary() {
-        const file_name = this.state.slug.replace("/", "_")
+        const file_name = getFileName(this.state.slug);
         const file = `step-summary-${file_name}.md`;
         return readFileSync(file, 'utf-8');
     }

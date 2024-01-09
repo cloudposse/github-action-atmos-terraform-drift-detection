@@ -1,5 +1,6 @@
 const {NewSkipped} = require("../results/new-skipped");
 const {readFileSync} = require("fs");
+const {getFileName} = require("../action");
 
 class Skip {
     constructor(issue, state, maxNumberOpenedIssues) {
@@ -14,7 +15,7 @@ class Skip {
     }
 
     summary() {
-        const file_name = this.state.slug.replace("/", "_")
+        const file_name = getFileName(this.state.slug);
         const file = `step-summary-${file_name}.md`;
         return readFileSync(file, 'utf-8');
     }

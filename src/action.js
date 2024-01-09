@@ -8,6 +8,11 @@ const {Close} = require("./operations/close");
 const {Remove} = require("./operations/remove");
 const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
+const {StackFromArchive} = require("./models/stacks_from_archive");
+
+function getFileName(slug) {
+  return slug.replace(/\//g, "_");
+}
 
 const downloadArtifacts = (artifactName) => {
   const artifactClient = artifact.create()
@@ -57,15 +62,6 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
       return [stackFromIssue.slug, stackFromIssue]
     }
   ))
-}
-
-class StackFromArchive {
-  constructor(metadata) {
-    this.metadata = metadata;
-    this.drifted = metadata.drifted;
-    this.error = metadata.error;
-    this.slug = `${metadata.stack}-${metadata.component}`;
-  }
 }
 
 const readMetadataFromPlanArtifacts = (path) => {
@@ -259,5 +255,6 @@ const runAction = async (octokit, context, parameters) => {
 }
 
 module.exports = {
-  runAction
+  runAction,
+  getFileName
 }

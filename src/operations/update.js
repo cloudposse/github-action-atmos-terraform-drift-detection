@@ -1,6 +1,7 @@
 const core = require("@actions/core");
 const {readFileSync} = require("fs");
 const {Exists} = require("../results/exists");
+const {getFileName} = require("../action");
 
 class Update {
     constructor(issue, state, labels) {
@@ -13,7 +14,7 @@ class Update {
         const repository = context.repo;
 
         const slug = this.state.slug;
-        const file_name = slug.replace("/", "_")
+        const file_name = getFileName(slug)
         const issueTitle = this.state.error ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const issueDescription = readFileSync(`issue-description-${file_name}.md`, 'utf8');
         const issueNumber = this.issue.number;
@@ -33,7 +34,7 @@ class Update {
     }
 
     summary() {
-        const file_name = this.state.slug.replace("/", "_")
+        const file_name = getFileName(this.state.slug);
         const file = `step-summary-${file_name}.md`;
         return readFileSync(file, 'utf-8');
     }
