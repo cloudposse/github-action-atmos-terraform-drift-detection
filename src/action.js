@@ -10,7 +10,7 @@ const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
 
-function getFileName(slug) {
+const getFileName = (slug) => {
   return slug.replace(/\//g, "_");
 }
 
