@@ -12,7 +12,7 @@ class NewSkipped {
         const repo = this.repository.repo;
         const runId = this.runId;
         const maxOpenedIssues = this.maxNumberOpenedIssues;
-        const component = `[${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
+        const component = `[${slug}](/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
         const state = this.state.error ?
             `![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")` :
             '![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted")';
