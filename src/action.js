@@ -1,405 +1,218 @@
 const fs = require('fs');
 const core = require('@actions/core');
 const artifact = require('@actions/artifact');
-const github = require('@actions/github');
+const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
+const {Skip} = require("./operations/skip");
+const {Update} = require("./operations/update");
+const {Close} = require("./operations/close");
+const {Remove} = require("./operations/remove");
+const {Create} = require("./operations/create");
+const {Nothing} = require("./operations/nothing");
+const {StackFromArchive} = require("./models/stacks_from_archive");
 
-const downloadArtifacts = async (artifactName) => {
-    try {
-        const artifactClient = artifact.create()
-        const downloadDirectory = '.'
-    
-        // Downloading the artifact
-        const downloadResponse = await artifactClient.downloadArtifact(artifactName, downloadDirectory);
 
-        core.info(`Artifact ${artifactName} downloaded to ${downloadResponse.downloadPath}`);
-      } catch (error) {
-        throw new Error(`Failed to download artifacts: ${error.message}`);
-      }
+const downloadArtifacts = (artifactName) => {
+  const artifactClient = artifact.create()
+  const downloadDirectory = '.'
+
+  // Downloading the artifact
+  return artifactClient.downloadArtifact(artifactName, downloadDirectory)
+    .then((item) => {
+      core.info(`Artifact ${artifactName} downloaded to ${item.downloadPath}`);
+      return item.downloadPath
+    })
 };
 
-const getMetadataFromIssueBody = (body) => {
-    const regex = /```json\s([\s\S]+?)\s```/;
-    const matched = body.match(regex);
+const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
+  const repository = context.repo;
 
-    if (matched && matched[1]) {
-      return JSON.parse(matched[1]);
-    } else {
-      throw new Error("Invalid metadata in the issue description");
+  const listIssues = async (per_page, page, result) => {
+    const response = await octokit.rest.issues.listForRepo({
+      ...repository,
+      state: 'open',
+      labels: labels,
+      per_page,
+      page
+    });
+
+    if (response.data.length === 0) {
+      return result
     }
+
+    const driftDetectionIssues = response.data.filter(
+      issue => issue.title.startsWith('Drift Detected in') || issue.title.startsWith('Failure Detected in')
+    ).filter(
+      issue => getMetadataFromIssueBody(issue.body) !== null
+    );
+
+    const result_partition = driftDetectionIssues.map(issue => {
+      return new StackFromIssue(issue);
+    })
+
+    return await listIssues(per_page, page + 1, result.concat(result_partition))
   }
 
-const mapOpenGitHubIssuesToComponents = async (octokit, context) => {
-    const repository = context.repo;
+  let per_page = 100; // Max allowed value per page
+  let result = await listIssues(per_page, 1, [])
+  return new Map(result.map(
+    (stackFromIssue) => {
+      return [stackFromIssue.slug, stackFromIssue]
+    }
+  ))
+}
 
-    let per_page = 100; // Max allowed value per page
-    let page = 1;
-    let componentsToIssues = {};
-    let componentsToMetadata = {};
-    let isContinue = true;
+const mapArtifactToComponents = (path) => {
+  const files = fs.readdirSync(path);
+  const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
+  const result = metadataFiles.map(
+    (file) => {
+      const metadata = JSON.parse(fs.readFileSync(file, 'utf8'));
 
-    while (isContinue) {
-      const response = await octokit.rest.issues.listForRepo({
-        ...repository,
-        state: 'open',
-        per_page,
-        page
-      });
-      
-      if (response.data.length === 0) {
-        isContinue = false;
-      } else {
-        const driftDetectionIssues = response.data
-          .filter(issue => issue.title.startsWith('Drift Detected in') || issue.title.startsWith('Failure Detected in'));
-        
-        for (let issue of driftDetectionIssues) {
-          const metadata = getMetadataFromIssueBody(issue.body);
-          const slug = `${metadata.stack}-${metadata.component}`
-          componentsToIssues[slug] = {
-              number: issue.number,
-              error: issue.title.startsWith('Failure Detected in')
-          };
-          componentsToMetadata[slug] = metadata;
-        }
+      const stackFromArchive = new StackFromArchive(metadata);
+      return [stackFromArchive.slug, stackFromArchive]
+    }
+  )
+  return new Map(result)
+}
 
-        page++;
+const getOperationsList = async (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
+
+  const stacks = processAll ?
+    [...stacksFromIssues.keys(), ...stacksFromArtifact.keys()] :
+    [...stacksFromArtifact.keys()]
+  const slugs = [...new Set(stacks)]  // get unique set
+
+  const operations = slugs.map((slug) => {
+    const issue = stacksFromIssues.get(slug)
+    const state = stacksFromArtifact.get(slug)
+    if (issue && state) {
+      if (state.error || state.drifted) {
+        const commitSHA = issue.metadata.commitSHA;
+        const currentSHA = "${{ github.sha }}";
+
+        return currentSHA === commitSHA ? new Skip(issue, state) : new Update(issue, state, labels)
+      }
+      return new Close(issue, state)
+
+    } else if (issue) {
+      return new Remove(issue)
+    } else if (state && (state.error || state.drifted)) {
+      return new Create(state, users, labels)
+    }
+
+    return new Nothing()
+  })
+
+  const openedIssuesCounts = operations.filter((operation) => {
+    return operation instanceof Update
+  }).length
+
+  const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - openedIssuesCounts);
+  // If maxOpenedIssues is negative then it will not limit the number of issues to create
+  let numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, maxOpenedIssues);
+
+  return operations.map((operation) => {
+    if (operation instanceof Create) {
+      if (numOfIssuesToCreate > 0) {
+        numOfIssuesToCreate -= 1
+      } else if (numOfIssuesToCreate === 0) {
+        return new Skip(operation.issue, operation.state, maxOpenedIssues);
       }
     }
 
-    return {
-        componentsToIssues: componentsToIssues,
-        componentsToMetadata: componentsToMetadata,
-    };
-}
-
-const readMetadataFromPlanArtifacts = async () => {
-    const files = fs.readdirSync('.');
-    const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
-
-    let componentsToState = {};
-    let componentsToMetadata = {};
-
-    for (let i = 0; i < metadataFiles.length; i++) {
-        const metadata = JSON.parse(fs.readFileSync(metadataFiles[i], 'utf8'));
-
-        const slug = `${metadata.stack}-${metadata.component}`;
-
-        componentsToState[slug] = {
-            drifted: metadata.drifted,
-            error: metadata.error
-        };
-        componentsToMetadata[slug] = metadata;
-    }
-
-    return {
-        componentsToState: componentsToState,
-        componentsToMetadata: componentsToMetadata,
-    };
-}
-
-const triage = async(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState) => {
-    let slugs = new Set([...Object.keys(componentsToIssueNumber), ...Object.keys(componentsToPlanState)]);
-
-    const componentsCandidatesToCreateIssue = [];
-    const componentsCandidatesToCloseIssue = [];
-    const componentsToUpdateExistingIssue = [];
-    const removedComponents = [];
-    const recoveredComponents = [];
-    const driftingComponents = [];
-    const erroredComponents = [];
-
-    for (let slug of slugs) {
-        if (componentsToIssueNumber.hasOwnProperty(slug)) {
-            const issueNumber = componentsToIssueNumber[slug].number;
-
-            if (componentsToPlanState.hasOwnProperty(slug)) {
-                const drifted = componentsToPlanState[slug].drifted;
-                const error = componentsToPlanState[slug].error;
-
-                if (drifted || error) {
-                    const commitSHA = componentsToIssueMetadata[slug].commitSHA;
-                    const currentSHA = "${{ github.sha }}";
-                    if (currentSHA === commitSHA) {
-                        core.info(`Component "${slug}" marked as drifted but default branch SHA didn't change so nothing to update. Skipping ...`);
-                        if (error) {
-                            erroredComponents.push(slug)
-                        } else {
-                            driftingComponents.push(slug);
-                        }
-                    } else {
-                        core.info(`Component "${slug}" is still drifting. Issue ${issueNumber} needs to be updated.`);
-                        componentsToUpdateExistingIssue.push(slug);
-                        if (error) {
-                            erroredComponents.push(slug)
-                        } else {
-                            driftingComponents.push(slug);
-                        }
-                    }
-                } else {
-                    core.info(`Component "${slug}" is not drifting anymore. Issue ${issueNumber} needs to be closed.`);
-                    componentsCandidatesToCloseIssue.push(slug);
-                    recoveredComponents.push(slug);
-                }
-            } else {
-                core.info(`Component "${slug}" has been removed. Issue ${issueNumber} needs to be closed.`);
-                componentsCandidatesToCloseIssue.push(slug);
-                removedComponents.push(slug);
-            }
-        } else {
-            const drifted = componentsToPlanState[slug].drifted;
-            const error = componentsToPlanState[slug].error;
-
-            if (drifted) {
-                core.info(`Component "${slug}" drifted. New issue has to be created.`);
-                componentsCandidatesToCreateIssue.push(slug);
-                driftingComponents.push(slug);
-            } else if (error) {
-                core.info(`Component "${slug}" drift error. New issue has to be created.`);
-                componentsCandidatesToCreateIssue.push(slug);
-                erroredComponents.push(slug);
-            } else {
-                core.info(`Component "${slug}" is not drifting. Skipping ...`);
-            }
-        }
-    }
-
-    return {
-        componentsCandidatesToCreateIssue: componentsCandidatesToCreateIssue,
-        componentsToUpdateExistingIssue: componentsToUpdateExistingIssue,
-        removedComponents: removedComponents,
-        recoveredComponents: recoveredComponents,
-        driftingComponents: driftingComponents,
-        erroredComponents: erroredComponents,
-        componentsCandidatesToCloseIssue: componentsCandidatesToCloseIssue,
-    }
-}
-
-const closeIssues = async (octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents) => {
-    const componentsToCloseIssuesFor = removedComponents.concat(recoveredComponents);
-
-    const repository = context.repo;
-
-    for (let i = 0; i < componentsToCloseIssuesFor.length; i++) {
-      const slug = componentsToCloseIssuesFor[i];
-      const issueNumber = componentsToIssueNumber[slug].number;
-
-      octokit.rest.issues.update({
-        ...repository,
-        issue_number: issueNumber,
-        state: "closed"
-      });
-
-      if (componentsToIssueNumber[slug].error) {
-          octokit.rest.issues.addLabels({
-              ...repository,
-              issue_number: issueNumber,
-              labels: ['error-recovered']
-          });
-      } else {
-          octokit.rest.issues.addLabels({
-              ...repository,
-              issue_number: issueNumber,
-              labels: ['drift-recovered']
-          });
-      }
-
-      let comment =  `Component \`${slug}\` is not drifting anymore`;
-      if ( removedComponents.hasOwnProperty(slug) ) {
-          comment = `Component \`${slug}\` has been removed`;
-      } else if ( componentsToIssueNumber[slug].error ) {
-          comment =  `Failure \`${slug}\` solved`;
-      }
-
-      octokit.rest.issues.createComment({
-        ...repository,
-        issue_number: issueNumber,
-        body: comment,
-      });
-
-      core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
-    }
+    return operation
+  })
 }
 
 const convertTeamsToUsers = async (octokit, orgName, teams) => {
-    let users = [];
+  let users = [];
 
-    if (teams.length === 0) {
-        console.log("No users to assign issue with. Skipping ...");
-    } else {
-        try {
-            let usersFromTeams = [];
+  if (teams.length === 0) {
+    console.log("No users to assign issue with. Skipping ...");
+  } else {
+    try {
+      let usersFromTeams = [];
 
-            for (let i = 0; i < teams.length; i++) {
-                const response = await octokit.rest.teams.listMembersInOrg({
-                    org: orgName,
-                    team_slug: teams[i]
-                });
-
-                const usersForCurrentTeam = response.data.map(user => user.login);
-                usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
-            }
-
-            users = users.concat(usersFromTeams);
-            users = [...new Set(users)]; // get unique set
-        } catch (error) {
-            core.error(`Failed to associate user to an issue. Error ${error.message}`);
-            users = [];
-        }
-    }
-
-    return users;
-}
-
-const createIssues = async (octokit, context, maxOpenedIssues, labels, users, componentsToIssues, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue, erroredComponents) => {
-    const repository = context.repo;
-    const numberOfMaximumPotentialIssuesThatCanBeCreated = Math.max(0, maxOpenedIssues - Object.keys(componentsToIssues).length + componentsCandidatesToCloseIssue.length);
-    const numOfIssuesToCreate = Math.min(numberOfMaximumPotentialIssuesThatCanBeCreated, componentsCandidatesToCreateIssue.length);
-    const componentsToNewlyCreatedIssues = {};
-
-    for (let i = 0; i < numOfIssuesToCreate; i++) {
-        const slug = componentsCandidatesToCreateIssue[i];
-        const issueTitle = erroredComponents.includes(slug) ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
-        const file_name = slug.replace(/\//g, "_")
-        if (!fs.existsSync(`issue-description-${file_name}.md`)) {
-            core.error(`Failed to create issue for component ${slug} because file "issue-description-${file_name}.md" does not exist`);
-            continue;
-        }
-        const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
-
-        const label  = erroredComponents.includes(slug) ? "error" : "drift"
-
-        const newIssue = await octokit.rest.issues.create({
-            ...repository,
-            title: issueTitle,
-            body: issueDescription,
-            labels: [label].concat(labels)
+      for (let i = 0; i < teams.length; i++) {
+        const response = await octokit.rest.teams.listMembersInOrg({
+          org: orgName,
+          team_slug: teams[i]
         });
 
-        const issueNumber = newIssue.data.number;
+        const usersForCurrentTeam = response.data.map(user => user.login);
+        usersFromTeams = usersFromTeams.concat(usersForCurrentTeam);
+      }
 
-        componentsToNewlyCreatedIssues[slug] = issueNumber;
-
-        core.info(`Created new issue with number: ${issueNumber}`);
-
-        core.setOutput('issue-number', issueNumber);
-
-        if (users.length > 0) {
-            try {
-                await octokit.rest.issues.addAssignees({
-                    ...repository,
-                    issue_number: issueNumber,
-                    assignees: users
-                });
-            } catch (error) {
-                core.error(`Failed to associate user to an issue. Error ${error.message}`);
-            }
-        }
+      users = users.concat(usersFromTeams);
+      users = [...new Set(users)]; // get unique set
+    } catch (error) {
+      core.error(`Failed to associate user to an issue. Error ${error.message}`);
+      users = [];
     }
+  }
 
-    return componentsToNewlyCreatedIssues;
+  return users;
 }
 
-const updateIssues = async (octokit, context, componentsToIssues, componentsToUpdateExistingIssue) => {
-    const repository = context.repo;
+const driftDetectionTable = (results) => {
 
-    for (let i = 0; i < componentsToUpdateExistingIssue.length; i++) {
-      const slug = componentsToUpdateExistingIssue[i];
-      const file_name = slug.replace(/\//g, "_")
-      const issueDescription = fs.readFileSync(`issue-description-${file_name}.md`, 'utf8');
-      const issueNumber = componentsToIssues[slug].number;
+  const table = [
+    `| Component | State | Comments |`,
+    `|-----------|-------|----------|`
+  ];
 
-      octokit.rest.issues.update({
-        ...repository,
-        issue_number: issueNumber,
-        body: issueDescription
-      });
+  results.map((result) => {
+    return result.render()
+  }).filter((result) => {
+    return result !== ""
+  }).forEach((result) => {
+    table.push(result)
+  })
 
-      core.info(`Updated issue: ${issueNumber}`);
-    }
+  if (table.length > 2) {
+    return ['# Drift Detection Summary', table.join("\n")]
+  }
+
+  return ["No drift detected"]
 }
 
-const postDriftDetectionSummary = async (context, maxOpenedIssues, componentsToIssues, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents, erroredComponents) => {
-    const orgName = context.repo.owner;
-    const repo = context.repo.repo;
-    const runId = github.context.runId;
+const postSummaries = async (table, components) => {
+  // GitHub limits summary per step to 1MB
+  // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits
+  const maximumLength = Math.pow(2, 20);
+  let totalLength = 0;
+  let currentLength = 0;
 
-    const table = [ `| Component | State | Comments |`];
-    table.push(`|---|---|---|`)
+  totalLength += table.join("\n").length
+  let summary = core.summary.addRaw(table.join("\n"), true)
 
-    for (let slug of Object.keys(componentsToNewlyCreatedIssues)) {
-      const issueNumber = componentsToNewlyCreatedIssues[slug];
+  const componentsWithSummary = components.map((component) => {
+    const fullSummary = component.summary()
+    const shortSummary = component.shortSummary()
 
-      if (driftingComponents.includes(slug)) {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | New drift detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-      } else if (erroredComponents.includes(slug)) {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Created new issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-      }
+    totalLength += fullSummary.length
+
+    return {
+      totalLength: totalLength,
+      fullSummary: fullSummary,
+      shortSummary: shortSummary
     }
-
-    for (let i = 0; i < componentsCandidatesToCreateIssue.length; i++) {
-      const slug = componentsCandidatesToCreateIssue[i];
-
-      if (!componentsToNewlyCreatedIssues.hasOwnProperty(slug)) {
-        if (driftingComponents.includes(slug)) {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | New drift detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
-        } else if (erroredComponents.includes(slug)) {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached |`);
-        }
-      }
+  }).filter((item) => {
+    return item.fullSummary !== ""
+  }).reverse().map((item) => {
+    if (item.totalLength + currentLength <= maximumLength) {
+      return item.fullSummary
     }
+    currentLength += item.shortSummary.length
+    return item.shortSummary
+  }).reverse()
 
-    for (let i = 0; i < removedComponents.length; i++) {
-      const slug = removedComponents[i];
-      const issueNumber = componentsToIssues[slug].number;
 
-      table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed") | Component has been removed. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-    }
+  componentsWithSummary.forEach((item) => {
+    summary.addRaw(item, true)
+  })
 
-    for (let i = 0; i < recoveredComponents.length; i++) {
-      const slug = recoveredComponents[i];
-      const issueNumber = componentsToIssues[slug].number;
-      if (componentsToIssues[slug].error) {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Failure recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-      } else {
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![recovered](https://shields.io/badge/RECOVERED-brightgreen?style=for-the-badge "Recovered") | Drift recovered. Closed issue [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-      }
-    }
-
-    for (let i = 0; i < driftingComponents.length; i++) {
-      const slug = driftingComponents[i];
-      if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-          const issueNumber = componentsToIssues[slug].number;
-          table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted") | Drift detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-      }
-    }
-
-    for (let i = 0; i < erroredComponents.length; i++) {
-        const slug = erroredComponents[i];
-        if (componentsCandidatesToCreateIssue.indexOf(slug) === -1) {
-            const issueNumber = componentsToIssues[slug].number;
-            table.push( `| [${slug}](https://github.com/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug}) | ![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed") | Failure detected. Issue already exists [#${issueNumber}](https://github.com/${orgName}/${repo}/issues/${issueNumber}) |`);
-        }
-    }
-
-    if (table.length > 1) {
-      await core.summary
-        .addRaw('# Drift Detection Summary', true)
-        .addRaw(table.join("\n"), true)
-        .write()
-    } else {
-      await core.summary.addRaw("No drift detected").write();
-    }
-}
-
-const postStepSummaries = async (driftingComponents, erroredComponents) => {
-    const components = driftingComponents.concat(erroredComponents)
-    for (let i = 0; i < components.length; i++) {
-      const slug = components[i];
-      const file_name = slug.replace(/\//g, "_")
-      const file = `step-summary-${file_name}.md`;
-      const content = fs.readFileSync(file, 'utf-8');
-
-      await core.summary.addRaw(content).write();
-    }
+  await summary.write();
 }
 
 /**
@@ -408,46 +221,36 @@ const postStepSummaries = async (driftingComponents, erroredComponents) => {
  * @param {Object} parameters
  */
 const runAction = async (octokit, context, parameters) => {
-    const {
-        maxOpenedIssues = 0,
-        assigneeUsers = [],
-        assigneeTeams = [],
-        labels        = []
-    } = parameters;
+  const {
+    maxOpenedIssues = 0,
+    assigneeUsers = [],
+    assigneeTeams = [],
+    labels = [],
+    processAll = false,
+  } = parameters;
 
-    await downloadArtifacts("metadata");
+  const stacksFromArtifact = await downloadArtifacts("metadata").then(
+    (path) => {
+      return mapArtifactToComponents(path)
+    }
+  )
 
-    const openGitHubIssuesToComponents = await mapOpenGitHubIssuesToComponents(octokit, context);
-    const componentsToIssueNumber = openGitHubIssuesToComponents.componentsToIssues;
-    const componentsToIssueMetadata = openGitHubIssuesToComponents.componentsToMetadata;
+  const stacksFromIssues = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
 
-    const metadataFromPlanArtifacts = await readMetadataFromPlanArtifacts();
-    const componentsToPlanState = metadataFromPlanArtifacts.componentsToState;
+  const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
+  let users = assigneeUsers.concat(usersFromTeams);
+  users = [...new Set(users)]; // get unique set
 
-    const triageResults = await triage(componentsToIssueNumber, componentsToIssueMetadata, componentsToPlanState);
-    const componentsCandidatesToCreateIssue = triageResults.componentsCandidatesToCreateIssue;
-    const componentsToUpdateExistingIssue = triageResults.componentsToUpdateExistingIssue;
-    const removedComponents = triageResults.removedComponents;
-    const recoveredComponents = triageResults.recoveredComponents;
-    const driftingComponents = triageResults.driftingComponents;
-    const erroredComponents = triageResults.erroredComponents;
-    const componentsCandidatesToCloseIssue = triageResults.componentsCandidatesToCloseIssue;
+  const operations = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll);
 
-    await closeIssues(octokit, context, componentsToIssueNumber, removedComponents, recoveredComponents);
+  const results = await Promise.all(operations.map((item) => {
+    return item.run(octokit, context)
+  }))
 
-    const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
-    let users = assigneeUsers.concat(usersFromTeams);
-    users = [...new Set(users)]; // get unique set
-
-    const componentsToNewlyCreatedIssues = await createIssues(octokit, context, maxOpenedIssues, labels, users, componentsToIssueNumber, componentsCandidatesToCreateIssue, componentsCandidatesToCloseIssue, erroredComponents);
-
-    await updateIssues(octokit, context, componentsToIssueNumber, componentsToUpdateExistingIssue);
-
-    await postDriftDetectionSummary(context, maxOpenedIssues, componentsToIssueNumber, componentsToNewlyCreatedIssues, componentsCandidatesToCreateIssue, removedComponents, recoveredComponents, driftingComponents, erroredComponents);
-
-    await postStepSummaries(driftingComponents, erroredComponents);
-};
+  const table = driftDetectionTable(results);
+  await postSummaries(table, operations);
+}
 
 module.exports = {
-    runAction
-};
+  runAction
+}
