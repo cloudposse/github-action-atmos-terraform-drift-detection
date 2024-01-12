@@ -217,7 +217,11 @@ const postSummaries = async (table, components) => {
 
 const postComment = async (octokit, context, table) => {
   if (context.payload.pull_request?.id) {
+    console.log("We are in PR context")
     await octokit.addComment(table.join("\n"));
+  }
+  else {
+    console.log("We are not in PR context")
   }
 }
 
