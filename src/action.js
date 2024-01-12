@@ -268,6 +268,7 @@ const runAction = async (octokit, context, parameters) => {
     `> [!NOTE]`,
     `> The Pull Request was merged without \`auto-apply\` label.`,
     `> GitOps workflow created issues so you can apply terraform plans independently by label each of them with \`apply\`.`,
+    ``
   ];
   const prTable = driftDetectionTable(title.join("\n"), results);
   await postComment(octokit, context, prTable)
