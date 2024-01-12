@@ -215,6 +215,12 @@ const postSummaries = async (table, components) => {
   await summary.write();
 }
 
+const postComment = async (octokit, context, table) => {
+  if (context.payload.pull_request?.id) {
+    await octokit.addComment(table.join("\n"));
+  }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -249,6 +255,7 @@ const runAction = async (octokit, context, parameters) => {
 
   const table = driftDetectionTable(results);
   await postSummaries(table, operations);
+  await postComment(octokit, context, table)
 }
 
 module.exports = {
