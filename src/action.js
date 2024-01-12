@@ -218,7 +218,7 @@ const postSummaries = async (table, components) => {
 const postComment = async (octokit, context, table) => {
   if (context.payload.pull_request != null) {
     console.log("We are in PR context")
-    await octokit.issues.createComment({
+    await octokit.rest.issues.createComment({
       ...context.repo,
       issue_number: context.payload.pull_request.number,
       body: table.join("\n")
