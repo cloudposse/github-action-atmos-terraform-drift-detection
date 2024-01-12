@@ -154,7 +154,7 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
   return users;
 }
 
-const driftDetectionTable = (results) => {
+const driftDetectionTable = (title, results) => {
 
   const table = [
     `| Component | State | Comments |`,
@@ -170,7 +170,7 @@ const driftDetectionTable = (results) => {
   })
 
   if (table.length > 2) {
-    return ['# Drift Detection Summary', table.join("\n")]
+    return [title, table.join("\n")]
   }
 
   return ["No drift detected"]
@@ -261,9 +261,16 @@ const runAction = async (octokit, context, parameters) => {
     return item.run(octokit, context)
   }))
 
-  const table = driftDetectionTable(results);
-  await postSummaries(table, operations);
-  await postComment(octokit, context, table)
+  const summaryTable = driftDetectionTable('# Drift Detection Summary', results);
+  await postSummaries(summaryTable, operations);
+
+  const title = [
+    `> [!NOTE]`,
+    `> The Pull Request was merged without \`auto-apply\` label.`,
+    `> GitOps workflow created issues so you can apply terraform plans independently by label each of them with \`apply\`.`,
+  ];
+  const prTable = driftDetectionTable(title.join("\n"), results);
+  await postComment(octokit, context, prTable)
 }
 
 module.exports = {
