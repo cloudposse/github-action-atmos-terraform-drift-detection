@@ -1,4 +1,4 @@
-name: "Test - Changes exist - Drift"
+name: "Test - PR comments"
 
 on:
   pull_request: {}
