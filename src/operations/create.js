@@ -13,17 +13,31 @@ class Create {
     async run(octokit, context) {
         const repository = context.repo;
 
+        const orgName = repository.owner;
+        const repo = repository.repo;
+        const runId = context.runId;
+
         const slug = this.state.slug;
         const issueTitle = this.state.error ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
         const file_name = getFileName(slug);
         const issueDescription = readFileSync(`issue-description-${file_name}.md`, 'utf8');
+
+        const body = [
+            issueDescription,
+            "# Related",
+            `* [Job](/${orgName}/${repo}/actions/runs/${runId})`
+        ]
+
+        if (context.payload.pull_request != null) {
+            body.add(`* #${context.payload.pull_request.number}`);
+        }
 
         const label = this.state.error ? "error" : "drift"
 
         const newIssue = await octokit.rest.issues.create({
             ...repository,
             title: issueTitle,
-            body: issueDescription,
+            body: body.join("\n"),
             labels: [label].concat(this.labels)
         });
 
@@ -43,7 +57,7 @@ class Create {
             }
         }
 
-        return new NewCreated(context.runId, repository, issueNumber, this.state);
+        return new NewCreated(runId, repository, issueNumber, this.state);
     }
 
     summary() {

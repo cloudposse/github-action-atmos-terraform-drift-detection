@@ -13,6 +13,10 @@ class Update {
     async run(octokit, context) {
         const repository = context.repo;
 
+        const orgName = repository.owner;
+        const repo = repository.repo;
+        const runId = context.runId;
+
         const slug = this.state.slug;
         const file_name = getFileName(slug)
         const issueTitle = this.state.error ? `Failure Detected in \`${slug}\`` : `Drift Detected in \`${slug}\``;
@@ -20,17 +24,27 @@ class Update {
         const issueNumber = this.issue.number;
         const label = this.state.error ? "error" : "drift"
 
+        const body = [
+            issueDescription,
+            "# Related",
+            `* [Job](/${orgName}/${repo}/actions/runs/${runId})`
+        ]
+
+        if (context.payload.pull_request != null) {
+            body.add(`* #${context.payload.pull_request.number}`);
+        }
+
         octokit.rest.issues.update({
             ...repository,
             issue_number: issueNumber,
             title: issueTitle,
-            body: issueDescription,
+            body: body.join("\n"),
             labels: [label].concat(this.labels)
         });
 
         core.info(`Updated issue: ${issueNumber}`);
 
-        return new Exists(context.runId, repository, issueNumber, this.state)
+        return new Exists(runId, repository, issueNumber, this.state)
     }
 
     summary() {
