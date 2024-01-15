@@ -269,7 +269,7 @@ const runAction = async (octokit, context, parameters) => {
     `> **No Changes Were Applied**`,
     `>`,
     `> This Pull Request was merged without using the \`auto-apply\` label. `,
-    `> Please check if the following issues and apply them by adding the \`apply\` label to the corresponding issue.`,
+    `> Please check the following issues and apply them by adding the \`apply\` label to the corresponding issue.`,
     ``
   ];
   const prTable = driftDetectionTable(title.join("\n"), results);
