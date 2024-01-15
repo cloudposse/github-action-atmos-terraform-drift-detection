@@ -265,9 +265,11 @@ const runAction = async (octokit, context, parameters) => {
   await postSummaries(summaryTable, operations);
 
   const title = [
-    `> [!NOTE]`,
-    `> The Pull Request was merged without \`auto-apply\` label.`,
-    `> GitOps workflow created issues so you can apply terraform plans independently by label each of them with \`apply\`.`,
+    `> [!IMPORTANT]`,
+    `> **No Changes Were Applied**`,
+    `>`,
+    `> This Pull Request was merged without using the \`auto-apply\` label. `,
+    `> Please [check if any issues](....) were created and apply them by adding the \`apply\` label to the corresponding issue.`,
     ``
   ];
   const prTable = driftDetectionTable(title.join("\n"), results);
