@@ -29,7 +29,7 @@ class Create {
         ]
 
         if (context.payload.pull_request != null) {
-            body.add(`* #${context.payload.pull_request.number}`);
+            body.push(`* #${context.payload.pull_request.number}`);
         }
 
         const label = this.state.error ? "error" : "drift"
