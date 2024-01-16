@@ -218,11 +218,35 @@ const postSummaries = async (table, components) => {
 const postComment = async (octokit, context, table) => {
   if (context.payload.pull_request != null) {
     console.log("We are in PR context")
-    await octokit.rest.issues.createComment({
+
+    const commentId = "test"
+    // Suffix comment with hidden value to check for updating later.
+    const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
+
+    const existingCommentId = await octokit.issues.listComments({
       ...context.repo,
       issue_number: context.payload.pull_request.number,
-      body: table.join("\n")
-    });
+    }).then( result => {
+      return result.data.filter(item => {
+        return item.body.includes(commentIdSuffix)
+      }).pop()
+    })
+
+    const commentBody = table.join("\n") + commentIdSuffix;
+    // If comment already exists, get the comment ID.
+    if (existingCommentId) {
+      await octokit.rest.issues.updateComment({
+        ...context.repo,
+        comment_id: existingCommentId,
+        body: commentBody
+      })
+    } else {
+      await octokit.rest.issues.createComment({
+        ...context.repo,
+        issue_number: context.payload.pull_request.number,
+        body: commentBody
+      });
+    }
   }
   else {
     console.log("We are not in PR context")

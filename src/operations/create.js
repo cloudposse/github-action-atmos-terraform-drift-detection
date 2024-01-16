@@ -25,7 +25,7 @@ class Create {
         const body = [
             issueDescription,
             "# Related",
-            `* [Job](/${orgName}/${repo}/actions/runs/${runId})`
+            `* [:building_construction: Action Workflow Logs](/${orgName}/${repo}/actions/runs/${runId})`
         ]
 
         if (context.payload.pull_request != null) {
