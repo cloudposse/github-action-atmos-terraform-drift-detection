@@ -227,7 +227,9 @@ const postComment = async (octokit, context, table) => {
       ...context.repo,
       issue_number: context.payload.pull_request.number,
     }).then( result => {
-      return result.data
+      return result.data.filter(item => {
+        return item !== null
+      })
     })
     // }).then( result => {
     //   return result.pop()
