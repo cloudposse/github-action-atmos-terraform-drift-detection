@@ -16,7 +16,7 @@ class NewCreated {
         const component = `[${slug}](/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
 
         let state = null;
-        if (this.prMode) {
+        if (!this.prMode) {
             state = this.state.error ?
               '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "NEEDS FiX")' :
               '![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "NEEDS APPLY")';
