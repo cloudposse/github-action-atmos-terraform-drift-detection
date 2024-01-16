@@ -219,7 +219,7 @@ const postComment = async (octokit, context, table) => {
   if (context.payload.pull_request != null) {
     console.log("We are in PR context")
 
-    const commentId = "test"
+    const commentId = "github-action-atmos-terraform-drift-detection-comment"
     // Suffix comment with hidden value to check for updating later.
     const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
 
@@ -231,13 +231,9 @@ const postComment = async (octokit, context, table) => {
         return item.body !== ""
       }).map(item => { return item.id }).pop()
     })
-    // }).then( result => {
-    //   return result
-    // })
 
     const commentBody = table.join("\n") + commentIdSuffix;
     // If comment already exists, get the comment ID.
-    console.log(existingCommentId)
     if (existingCommentId) {
       console.log("Update comment")
       await octokit.rest.issues.updateComment({
