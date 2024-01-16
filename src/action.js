@@ -237,12 +237,14 @@ const postComment = async (octokit, context, table) => {
     const commentBody = table.join("\n") + commentIdSuffix;
     // If comment already exists, get the comment ID.
     if (existingCommentId) {
+      console.log("Update comment")
       await octokit.rest.issues.updateComment({
         ...context.repo,
         comment_id: existingCommentId,
         body: commentBody
       })
     } else {
+      console.log("Create comment")
       await octokit.rest.issues.createComment({
         ...context.repo,
         issue_number: context.payload.pull_request.number,
