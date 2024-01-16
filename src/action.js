@@ -229,10 +229,10 @@ const postComment = async (octokit, context, table) => {
     }).then( result => {
       return result.data.filter(item => {
         return item.body !== ""
-      }).map(item => { return item.id })
+      }).map(item => { return item.id }).pop()
     })
     // }).then( result => {
-    //   return result.pop()
+    //   return result
     // })
 
     const commentBody = table.join("\n") + commentIdSuffix;
