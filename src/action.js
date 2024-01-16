@@ -230,6 +230,7 @@ const postComment = async (octokit, context, table) => {
       return result.data.filter(item => {
         return item.body.includes(commentIdSuffix)
       })
+    })
     // }).then( result => {
     //   return result.pop()
     // })
