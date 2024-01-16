@@ -229,7 +229,7 @@ const postComment = async (octokit, context, table) => {
     }).then( result => {
       return result.data.filter(item => {
         return item.body !== ""
-      })
+      }).map(item => { return item.id })
     })
     // }).then( result => {
     //   return result.pop()
