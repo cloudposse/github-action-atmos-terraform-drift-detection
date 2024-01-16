@@ -230,9 +230,9 @@ const postComment = async (octokit, context, table) => {
       return result.data.filter(item => {
         return item.body.includes(commentIdSuffix)
       })
-    }).then( result => {
-      return result.pop()
-    })
+    // }).then( result => {
+    //   return result.pop()
+    // })
 
     const commentBody = table.join("\n") + commentIdSuffix;
     // If comment already exists, get the comment ID.
