@@ -18,8 +18,8 @@ class Exists {
         let state = null;
         if (this.prMode) {
             state = this.state.error ?
-              '![NEEDS FiX](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
-              '![NEEDS APPLY](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted")';
+              '![needs fix](https://shields.io/badge/NEEDS%20FiX-ff0000?style=for-the-badge "needs fix")' :
+              '![needs apply](https://shields.io/badge/NEEDS%20APPLY-important?style=for-the-badge "needs apply")';
         } else {
             state = this.state.error ?
               '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
