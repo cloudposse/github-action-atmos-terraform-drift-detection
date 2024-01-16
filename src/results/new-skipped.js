@@ -18,8 +18,8 @@ class NewSkipped {
         let state = null;
         if (this.prMode) {
             state = this.state.error ?
-              '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "NEEDS FiX")' :
-              '![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "NEEDS APPLY")';
+              '![NEEDS FiX](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
+              '![NEEDS APPLY](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted")';
         } else {
             state = this.state.error ?
               '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
