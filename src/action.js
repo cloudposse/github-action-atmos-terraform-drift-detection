@@ -223,7 +223,7 @@ const postComment = async (octokit, context, table) => {
     // Suffix comment with hidden value to check for updating later.
     const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
 
-    const existingCommentId = await octokit.issues.listComments({
+    const existingCommentId = await octokit.rest.issues.listComments({
       ...context.repo,
       issue_number: context.payload.pull_request.number,
     }).then( result => {
