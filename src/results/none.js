@@ -1,6 +1,6 @@
 class None {
-    constructor(runId, repository, newIssue, state) {
-        this.runId = runId;
+    constructor(context, repository, newIssue, state) {
+        this.runId = context.runId;
         this.repository = repository;
         this.newIssue = newIssue;
         this.state = state;

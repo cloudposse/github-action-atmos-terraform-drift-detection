@@ -287,6 +287,7 @@ const runAction = async (octokit, context, parameters) => {
     return item.run(octokit, context)
   }))
 
+
   const summaryTable = driftDetectionTable('# Drift Detection Summary', results);
   await postSummaries(summaryTable, operations);
 

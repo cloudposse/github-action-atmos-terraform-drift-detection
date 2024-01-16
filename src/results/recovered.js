@@ -1,6 +1,6 @@
 class Recovered {
-    constructor(runId, repository, newIssueNumber, state) {
-        this.runId = runId;
+    constructor(context, repository, newIssueNumber, state) {
+        this.runId = context.runId;
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
         this.state = state;

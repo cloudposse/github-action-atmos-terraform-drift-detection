@@ -57,7 +57,7 @@ class Create {
             }
         }
 
-        return new NewCreated(runId, repository, issueNumber, this.state);
+        return new NewCreated(context, repository, issueNumber, this.state);
     }
 
     summary() {

@@ -1,6 +1,7 @@
 class Removed {
-    constructor(runId, repository, newIssueNumber, issue) {
-        this.runId = runId;
+    constructor(context, repository, newIssueNumber, issue) {
+        this.runId = context.runId;
+        this.prMode = context.payload.pull_request != null
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
         this.issue = issue;
