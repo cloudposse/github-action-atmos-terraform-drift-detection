@@ -29,7 +29,6 @@ class Recovered extends Base {
         return [component, state, comments].join(" | ");
     }
 
-
     summary() {
         return "";
     }

@@ -8,6 +8,14 @@ class None extends Base {
     render() {
         return ""
     }
+
+    summary() {
+        return "";
+    }
+
+    shortSummary() {
+        return "";
+    }
 }
 
 
