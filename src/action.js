@@ -286,7 +286,7 @@ const runAction = async (octokit, context, parameters) => {
       `Review the following issues and, if applicable, tag each with the  \`apply\` label to apply the changes.`,
       ``
     ];
-    await postComment(octokit, context, title.join("\n"))
+    await postComment(octokit, context, title)
   }
 
   const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
