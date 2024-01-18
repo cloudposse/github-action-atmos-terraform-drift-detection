@@ -163,20 +163,17 @@ const driftDetectionTable = (title, results, commentMode) => {
     table.push(`|-----------|-------|----------|`);
   }
 
-
-  results.map((result) => {
+  const tableContent = results.map((result) => {
     return result.render(commentMode)
   }).filter((result) => {
     return result !== ""
-  }).forEach((result) => {
-    table.push(result)
   })
 
-  if (commentMode || table.length > 2) {
-    return [title, table.join("\n")]
+  if (tableContent.length > 0) {
+    return [title, table.concat(tableContent).join("\n")]
   }
 
-  return ["No drift detected"]
+  return []
 }
 
 const postSummaries = async (table, components) => {
@@ -283,9 +280,8 @@ const runAction = async (octokit, context, parameters) => {
     return item.run(octokit, context)
   }))
 
-
   const summaryTable = driftDetectionTable('# Drift Detection Summary', results, false);
-  await postSummaries(summaryTable, operations);
+  await postSummaries(summaryTable, results);
 
 
   if (context.payload.pull_request != null) {
@@ -295,8 +291,9 @@ const runAction = async (octokit, context, parameters) => {
       `> [!IMPORTANT]`,
       `> **No Changes Were Applied**`,
       `>`,
-      `> This Pull Request was merged without using the \`auto-apply\` label. `,
-      `> Please check the following issues and apply them by adding the \`apply\` label to the corresponding issue.`,
+      `> This Pull Request was merged without using the \`auto-apply\` label; therefore, no changes were applied upon merging.`,
+      ``,
+      `Review the following issues and, if applicable, tag each with the  \`apply\` label to apply the changes.`,
       ``
     ];
     const prTable = driftDetectionTable(title.join("\n"), results, true);

@@ -35,13 +35,6 @@ class Remove {
 
         return new Removed(context, repository, issueNumber, this.issue);
     }
-
-    summary() {
-        return "";
-    }
-    shortSummary() {
-        return "";
-    }
 }
 
 

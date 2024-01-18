@@ -38,15 +38,6 @@ class Close {
 
         return new Recovered(context, repository, issueNumber, this.state)
     }
-
-    summary() {
-        return "";
-    }
-
-    shortSummary() {
-        return "";
-    }
-
 }
 
 

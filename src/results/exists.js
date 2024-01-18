@@ -1,5 +1,10 @@
-class Exists {
+const {Base} = require("./base");
+const {getFileName} = require("../utils");
+const {readFileSync} = require("fs");
+
+class Exists extends Base {
     constructor(context, repository, newIssueNumber, state) {
+        super();
         this.runId = context.runId;
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
@@ -30,6 +35,22 @@ class Exists {
         return [component, state, comments].join(" | ");
     }
 
+
+    summary() {
+        const file_name = getFileName(this.state.slug);
+        const file = `step-summary-${file_name}.md`;
+        return readFileSync(file, 'utf-8');
+    }
+
+    shortSummary() {
+        const component = this.state.metadata.component;
+        const stack = this.state.metadata.stack;
+        const title = this.state.error ?
+          `## Plan Failed for \`${component}\` in \`${stack}\`` :
+          `## Changes Found for \`${component}\` in \`${stack}\``;
+        const body = `Summary is unavailable due to [GitHub size limitation](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#step-isolation-and-limits) on job summaries. Please check the GitHub Action run logs for more details.`
+        return [title, body].join("\n");
+    }
 }
 
 

@@ -7,14 +7,6 @@ class Nothing {
     async run() {
         return new None();
     }
-
-    summary() {
-        return "";
-    }
-
-    shortSummary() {
-        return "";
-    }
 }
 
 
