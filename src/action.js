@@ -156,10 +156,13 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
 
 const driftDetectionTable = (title, results, commentMode) => {
 
-  const table = [
-    `| Component | State | Comments |`,
-    `|-----------|-------|----------|`
-  ];
+  const table = [];
+
+  if (!commentMode) {
+    table.push(`| Component | State | Comments |`);
+    table.push(`|-----------|-------|----------|`);
+  }
+
 
   results.map((result) => {
     return result.render(commentMode)
@@ -169,7 +172,7 @@ const driftDetectionTable = (title, results, commentMode) => {
     table.push(result)
   })
 
-  if (table.length > 2) {
+  if (commentMode || table.length > 2) {
     return [title, table.join("\n")]
   }
 
