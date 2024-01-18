@@ -59,6 +59,10 @@ class Create {
 
         return new NewCreated(context, repository, issueNumber, this.state);
     }
+
+    isVisible() {
+        return true
+    }
 }
 
 

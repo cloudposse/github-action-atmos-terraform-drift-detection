@@ -46,6 +46,10 @@ class Update {
 
         return new Exists(context, repository, issueNumber, this.state)
     }
+
+    isVisible() {
+        return true
+    }
 }
 
 

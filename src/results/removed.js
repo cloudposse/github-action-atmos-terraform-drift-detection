@@ -9,7 +9,7 @@ class Removed extends Base {
         this.issue = issue;
     }
 
-    render(commentMode) {
+    render() {
         const slug = this.issue.slug;
         const orgName = this.repository.owner;
         const repo = this.repository.repo;
@@ -19,13 +19,8 @@ class Removed extends Base {
         const state = `![removed](https://shields.io/badge/REMOVED-grey?style=for-the-badge "Removed")`;
         const comments = `Component has been removed. Closed issue [#${issueNumber}](/${orgName}/${repo}/issues/${issueNumber})`;
 
-        if (commentMode) {
-            return `* #${issueNumber} (issue closed)`
-        }
-
         return [component, state, comments].join(" | ");
     }
-
 
     summary() {
         return "";

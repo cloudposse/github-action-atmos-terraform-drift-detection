@@ -154,22 +154,20 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
   return users;
 }
 
-const driftDetectionTable = (title, results, commentMode) => {
+const driftDetectionTable = (title, results) => {
 
-  const table = [];
-
-  if (!commentMode) {
-    table.push(`| Component | State | Comments |`);
-    table.push(`|-----------|-------|----------|`);
-  }
+  const table = [
+    `| Component | State | Comments |`,
+    `|-----------|-------|----------|`
+  ]
 
   const tableContent = results.map((result) => {
-    return result.render(commentMode)
+    return result.render()
   }).filter((result) => {
     return result !== ""
   })
 
-  if (tableContent.length > 0) {
+  if (tableContent.length > 2) {
     return [title, table.concat(tableContent).join("\n")]
   }
 
@@ -274,19 +272,11 @@ const runAction = async (octokit, context, parameters) => {
   let users = assigneeUsers.concat(usersFromTeams);
   users = [...new Set(users)]; // get unique set
 
-  const results = await Promise.all(getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll).map( item => {
-    return item.run(octokit, context)
-  }))
-
-  console.log(results)
-
-  const summaryTable = driftDetectionTable('# Drift Detection Summary', results, false);
-  await postSummaries(summaryTable, results);
+  const operations = getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll)
+    .filter(item => item.isVisible())
 
 
-  if (context.payload.pull_request != null) {
-    console.log("We are in the PR context")
-
+  if (operations.length > 0 && context.payload.pull_request != null) {
     const title = [
       `> [!IMPORTANT]`,
       `> **No Changes Were Applied**`,
@@ -296,11 +286,13 @@ const runAction = async (octokit, context, parameters) => {
       `Review the following issues and, if applicable, tag each with the  \`apply\` label to apply the changes.`,
       ``
     ];
-    const prTable = driftDetectionTable(title.join("\n"), results, true);
-    await postComment(octokit, context, prTable)
-  } else {
-    console.log("We are in not the PR context. Do not post any comments")
+    await postComment(octokit, context, title.join("\n"))
   }
+
+  const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
+
+  const summaryTable = driftDetectionTable('# Drift Detection Summary', results);
+  await postSummaries(summaryTable, results);
 }
 
 module.exports = {

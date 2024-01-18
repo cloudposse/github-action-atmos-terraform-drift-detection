@@ -13,10 +13,6 @@ class Base {
     throw new Error("Method 'render()' must be implemented.");
   }
 
-  isVisible() {
-    return this.render(false) !== ""
-  }
-
   summary() {
     throw new Error("Method 'summary()' must be implemented.");
   }

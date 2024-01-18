@@ -35,6 +35,10 @@ class Remove {
 
         return new Removed(context, repository, issueNumber, this.issue);
     }
+
+    isVisible() {
+        return true
+    }
 }
 
 

@@ -11,16 +11,12 @@ class Exists extends Base {
         this.state = state;
     }
 
-    render(commentMode) {
+    render() {
         const slug = this.state.slug;
         const orgName = this.repository.owner;
         const repo = this.repository.repo;
         const runId = this.runId;
         const issueNumber = this.newIssueNumber;
-
-        if (commentMode) {
-            return `* #${issueNumber} (issue updated)`
-        }
 
         const component = `[${slug}](/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
 

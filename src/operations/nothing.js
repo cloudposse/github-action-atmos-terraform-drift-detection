@@ -7,6 +7,10 @@ class Nothing {
     async run() {
         return new None();
     }
+
+    isVisible() {
+        return false
+    }
 }
 
 
