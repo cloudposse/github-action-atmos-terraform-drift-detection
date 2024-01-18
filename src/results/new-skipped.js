@@ -15,16 +15,9 @@ class NewSkipped {
         const maxOpenedIssues = this.maxNumberOpenedIssues;
         const component = `[${slug}](/${orgName}/${repo}/actions/runs/${runId}#user-content-result-${slug})`;
 
-        let state = null;
-        if (this.prMode) {
-            state = this.state.error ?
-              '![needs fix](https://shields.io/badge/NEEDS%20FiX-ff0000?style=for-the-badge "needs fix")' :
-              '![needs apply](https://shields.io/badge/NEEDS%20APPLY-important?style=for-the-badge "needs apply")';
-        } else {
-            state = this.state.error ?
-              '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
-              '![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted")';
-        }
+        const state = this.state.error ?
+          '![failed](https://shields.io/badge/FAILED-ff0000?style=for-the-badge "Failed")' :
+          '![drifted](https://shields.io/badge/DRIFTED-important?style=for-the-badge "Drifted")';
 
         const comments = this.state.error ?
             `Failure detected. Issue was not created because maximum number of created issues ${maxOpenedIssues} reached` :

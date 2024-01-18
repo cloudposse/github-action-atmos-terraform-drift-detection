@@ -154,7 +154,7 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
   return users;
 }
 
-const driftDetectionTable = (title, results) => {
+const driftDetectionTable = (title, results, commentMode) => {
 
   const table = [
     `| Component | State | Comments |`,
@@ -162,7 +162,7 @@ const driftDetectionTable = (title, results) => {
   ];
 
   results.map((result) => {
-    return result.render()
+    return result.render(commentMode)
   }).filter((result) => {
     return result !== ""
   }).forEach((result) => {
@@ -216,42 +216,35 @@ const postSummaries = async (table, components) => {
 }
 
 const postComment = async (octokit, context, table) => {
-  if (context.payload.pull_request != null) {
-    console.log("We are in PR context")
+  const commentId = "github-action-atmos-terraform-drift-detection-comment"
+  // Suffix comment with hidden value to check for updating later.
+  const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
 
-    const commentId = "github-action-atmos-terraform-drift-detection-comment"
-    // Suffix comment with hidden value to check for updating later.
-    const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
+  const existingCommentId = await octokit.rest.issues.listComments({
+    ...context.repo,
+    issue_number: context.payload.pull_request.number,
+  }).then( result => {
+    return result.data.filter(item => {
+      return item.body !== ""
+    }).map(item => { return item.id }).pop()
+  })
 
-    const existingCommentId = await octokit.rest.issues.listComments({
+  const commentBody = table.join("\n") + commentIdSuffix;
+  // If comment already exists, get the comment ID.
+  if (existingCommentId) {
+    console.log("Update comment")
+    await octokit.rest.issues.updateComment({
+      ...context.repo,
+      comment_id: existingCommentId,
+      body: commentBody
+    })
+  } else {
+    console.log("Create comment")
+    await octokit.rest.issues.createComment({
       ...context.repo,
       issue_number: context.payload.pull_request.number,
-    }).then( result => {
-      return result.data.filter(item => {
-        return item.body !== ""
-      }).map(item => { return item.id }).pop()
-    })
-
-    const commentBody = table.join("\n") + commentIdSuffix;
-    // If comment already exists, get the comment ID.
-    if (existingCommentId) {
-      console.log("Update comment")
-      await octokit.rest.issues.updateComment({
-        ...context.repo,
-        comment_id: existingCommentId,
-        body: commentBody
-      })
-    } else {
-      console.log("Create comment")
-      await octokit.rest.issues.createComment({
-        ...context.repo,
-        issue_number: context.payload.pull_request.number,
-        body: commentBody
-      });
-    }
-  }
-  else {
-    console.log("We are not in PR context")
+      body: commentBody
+    });
   }
 }
 
@@ -288,19 +281,26 @@ const runAction = async (octokit, context, parameters) => {
   }))
 
 
-  const summaryTable = driftDetectionTable('# Drift Detection Summary', results);
+  const summaryTable = driftDetectionTable('# Drift Detection Summary', results, false);
   await postSummaries(summaryTable, operations);
 
-  const title = [
-    `> [!IMPORTANT]`,
-    `> **No Changes Were Applied**`,
-    `>`,
-    `> This Pull Request was merged without using the \`auto-apply\` label. `,
-    `> Please check the following issues and apply them by adding the \`apply\` label to the corresponding issue.`,
-    ``
-  ];
-  const prTable = driftDetectionTable(title.join("\n"), results);
-  await postComment(octokit, context, prTable)
+
+  if (context.payload.pull_request != null) {
+    console.log("We are in the PR context")
+
+    const title = [
+      `> [!IMPORTANT]`,
+      `> **No Changes Were Applied**`,
+      `>`,
+      `> This Pull Request was merged without using the \`auto-apply\` label. `,
+      `> Please check the following issues and apply them by adding the \`apply\` label to the corresponding issue.`,
+      ``
+    ];
+    const prTable = driftDetectionTable(title.join("\n"), results, true);
+    await postComment(octokit, context, prTable)
+  } else {
+    console.log("We are in not the PR context. Do not post any comments")
+  }
 }
 
 module.exports = {
