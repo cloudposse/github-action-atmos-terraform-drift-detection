@@ -75,7 +75,7 @@ const mapArtifactToComponents = (path) => {
   return new Map(result)
 }
 
-const getOperationsList = async (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
+const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
 
   const stacks = processAll ?
     [...stacksFromIssues.keys(), ...stacksFromArtifact.keys()] :
@@ -274,11 +274,11 @@ const runAction = async (octokit, context, parameters) => {
   let users = assigneeUsers.concat(usersFromTeams);
   users = [...new Set(users)]; // get unique set
 
-  const results = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll).then(items => {
-    return items.map(item => {
-      return item.run(octokit, context)
-    })
-  })
+  const results = await Promise.all(getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll).map( item => {
+    return item.run(octokit, context)
+  }))
+
+  console.log(results)
 
   const summaryTable = driftDetectionTable('# Drift Detection Summary', results, false);
   await postSummaries(summaryTable, results);
