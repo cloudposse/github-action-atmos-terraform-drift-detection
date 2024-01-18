@@ -274,11 +274,11 @@ const runAction = async (octokit, context, parameters) => {
   let users = assigneeUsers.concat(usersFromTeams);
   users = [...new Set(users)]; // get unique set
 
-  const operations = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll);
-
-  const results = await Promise.all(operations.map((item) => {
-    return item.run(octokit, context)
-  }))
+  const results = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll).then(items => {
+    return items.map(item => {
+      return item.run(octokit, context)
+    })
+  })
 
   const summaryTable = driftDetectionTable('# Drift Detection Summary', results, false);
   await postSummaries(summaryTable, results);
