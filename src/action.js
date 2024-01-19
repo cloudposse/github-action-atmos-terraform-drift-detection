@@ -278,7 +278,7 @@ const runAction = async (octokit, context, parameters) => {
 
 
   if (context.payload.pull_request != null) {
-    const fileName = operations.length > 0 ? "../assets/comment.md" : "../assets/comments-no-changes.md"
+    const fileName = operations.length > 0 ? "./assets/comment.md" : "./assets/comments-no-changes.md"
     const title = [readFileSync(fileName, 'utf-8')]
     await postComment(octokit, context, title)
   }
