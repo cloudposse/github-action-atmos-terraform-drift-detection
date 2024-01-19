@@ -9,6 +9,7 @@ const {Remove} = require("./operations/remove");
 const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
+const {readFileSync} = require("fs");
 
 
 const downloadArtifacts = (artifactName) => {
@@ -154,7 +155,7 @@ const convertTeamsToUsers = async (octokit, orgName, teams) => {
   return users;
 }
 
-const driftDetectionTable = (title, results) => {
+const driftDetectionTable = (results) => {
 
   const table = [
     `| Component | State | Comments |`,
@@ -168,7 +169,7 @@ const driftDetectionTable = (title, results) => {
   })
 
   if (tableContent.length > 2) {
-    return [title, table.concat(tableContent).join("\n")]
+    return ['# Drift Detection Summary', table.concat(tableContent).join("\n")]
   }
 
   return []
@@ -276,22 +277,15 @@ const runAction = async (octokit, context, parameters) => {
     .filter(item => item.isVisible())
 
 
-  if (operations.length > 0 && context.payload.pull_request != null) {
-    const title = [
-      `> [!IMPORTANT]`,
-      `> **No Changes Were Applied**`,
-      `>`,
-      `> This Pull Request was merged without using the \`auto-apply\` label; therefore, no changes were applied upon merging.`,
-      ``,
-      `Review the following issues and, if applicable, tag each with the  \`apply\` label to apply the changes.`,
-      ``
-    ];
+  if (context.payload.pull_request != null) {
+    const fileName = operations.length > 0 ? "../assets/comment.md" : "../assets/comments-no-changes.md"
+    const title = [readFileSync(fileName, 'utf-8')]
     await postComment(octokit, context, title)
   }
 
   const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
 
-  const summaryTable = driftDetectionTable('# Drift Detection Summary', results);
+  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync("../assets/summary-no-changes.md", 'utf-8')]
   await postSummaries(summaryTable, results);
 }
 
