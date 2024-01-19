@@ -1,5 +1,6 @@
 const fs = require('fs');
 const core = require('@actions/core');
+const github = require('@actions/github');
 const artifact = require('@actions/artifact');
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
@@ -276,7 +277,7 @@ const runAction = async (octokit, context, parameters) => {
   const operations = getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll)
     .filter(item => item.isVisible())
 
-  const action_path = process.env.GITHUB_ACTION_PATH
+  const action_path = __dirname
 
   if (context.payload.pull_request != null) {
     const fileName = operations.length > 0 ? `${action_path}/assets/comment.md` : `${action_path}/assets/comments-no-changes.md`
