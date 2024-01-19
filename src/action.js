@@ -285,7 +285,7 @@ const runAction = async (octokit, context, parameters) => {
 
   const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
 
-  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync("../assets/summary-no-changes.md", 'utf-8')]
+  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync("./assets/summary-no-changes.md", 'utf-8')]
   await postSummaries(summaryTable, results);
 }
 
