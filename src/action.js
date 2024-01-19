@@ -276,16 +276,17 @@ const runAction = async (octokit, context, parameters) => {
   const operations = getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll)
     .filter(item => item.isVisible())
 
+  const action_path = process.env.GITHUB_ACTION_PATH
 
   if (context.payload.pull_request != null) {
-    const fileName = operations.length > 0 ? "./assets/comment.md" : "./assets/comments-no-changes.md"
+    const fileName = operations.length > 0 ? `${action_path}/assets/comment.md` : `${action_path}/assets/comments-no-changes.md`
     const title = [readFileSync(fileName, 'utf-8')]
     await postComment(octokit, context, title)
   }
 
   const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
 
-  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync("./assets/summary-no-changes.md", 'utf-8')]
+  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync(`${action_path}/assets/summary-no-changes.md`, 'utf-8')]
   await postSummaries(summaryTable, results);
 }
 
