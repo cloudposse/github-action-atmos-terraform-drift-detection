@@ -1,6 +1,9 @@
-class Recovered {
-    constructor(runId, repository, newIssueNumber, state) {
-        this.runId = runId;
+const {Base} = require("./base");
+
+class Recovered extends Base {
+    constructor(context, repository, newIssueNumber, state) {
+        super();
+        this.runId = context.runId;
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
         this.state = state;
@@ -22,6 +25,13 @@ class Recovered {
         return [component, state, comments].join(" | ");
     }
 
+    summary() {
+        return "";
+    }
+
+    shortSummary() {
+        return "";
+    }
 }
 
 

@@ -36,15 +36,11 @@ class Close {
 
         core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
 
-        return new Recovered(context.runId, repository, issueNumber, this.state)
+        return new Recovered(context, repository, issueNumber, this.state)
     }
 
-    summary() {
-        return "";
-    }
-
-    shortSummary() {
-        return "";
+    isVisible() {
+        return true
     }
 
 }

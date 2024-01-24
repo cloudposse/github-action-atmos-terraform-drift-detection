@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const core = require('@actions/core');
 const artifact = require('@actions/artifact');
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
@@ -9,6 +10,7 @@ const {Remove} = require("./operations/remove");
 const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
+const {readFileSync} = require("fs");
 
 
 const downloadArtifacts = (artifactName) => {
@@ -75,7 +77,7 @@ const mapArtifactToComponents = (path) => {
   return new Map(result)
 }
 
-const getOperationsList = async (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
+const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll) => {
 
   const stacks = processAll ?
     [...stacksFromIssues.keys(), ...stacksFromArtifact.keys()] :
@@ -159,21 +161,19 @@ const driftDetectionTable = (results) => {
   const table = [
     `| Component | State | Comments |`,
     `|-----------|-------|----------|`
-  ];
+  ]
 
-  results.map((result) => {
+  const tableContent = results.map((result) => {
     return result.render()
   }).filter((result) => {
     return result !== ""
-  }).forEach((result) => {
-    table.push(result)
   })
 
-  if (table.length > 2) {
-    return ['# Drift Detection Summary', table.join("\n")]
+  if (tableContent.length > 2) {
+    return ['# Drift Detection Summary', table.concat(tableContent).join("\n")]
   }
 
-  return ["No drift detected"]
+  return []
 }
 
 const postSummaries = async (table, components) => {
@@ -215,6 +215,39 @@ const postSummaries = async (table, components) => {
   await summary.write();
 }
 
+const postComment = async (octokit, context, table) => {
+  const commentId = "github-action-atmos-terraform-drift-detection-comment"
+  // Suffix comment with hidden value to check for updating later.
+  const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
+
+  const existingCommentId = await octokit.rest.issues.listComments({
+    ...context.repo,
+    issue_number: context.payload.pull_request.number,
+  }).then( result => {
+    return result.data.filter(item => {
+      return item.body !== ""
+    }).map(item => { return item.id }).pop()
+  })
+
+  const commentBody = table.join("\n") + commentIdSuffix;
+  // If comment already exists, get the comment ID.
+  if (existingCommentId) {
+    console.log("Update comment")
+    await octokit.rest.issues.updateComment({
+      ...context.repo,
+      comment_id: existingCommentId,
+      body: commentBody
+    })
+  } else {
+    console.log("Create comment")
+    await octokit.rest.issues.createComment({
+      ...context.repo,
+      issue_number: context.payload.pull_request.number,
+      body: commentBody
+    });
+  }
+}
+
 /**
  * @param {Object} octokit
  * @param {Object} context
@@ -241,14 +274,21 @@ const runAction = async (octokit, context, parameters) => {
   let users = assigneeUsers.concat(usersFromTeams);
   users = [...new Set(users)]; // get unique set
 
-  const operations = await getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll);
+  const operations = getOperationsList(stacksFromIssues, stacksFromArtifact, users, labels, maxOpenedIssues, processAll)
+    .filter(item => item.isVisible())
 
-  const results = await Promise.all(operations.map((item) => {
-    return item.run(octokit, context)
-  }))
+  const assets_path = path.resolve(__dirname + '/../assets')
 
-  const table = driftDetectionTable(results);
-  await postSummaries(table, operations);
+  if (context.payload.pull_request != null) {
+    const fileName = operations.length > 0 ? `${assets_path}/comment.md` : `${assets_path}/comments-no-changes.md`
+    const title = [readFileSync(fileName, 'utf-8')]
+    await postComment(octokit, context, title)
+  }
+
+  const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
+
+  const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync(`${assets_path}/summary-no-changes.md`, 'utf-8')]
+  await postSummaries(summaryTable, results);
 }
 
 module.exports = {

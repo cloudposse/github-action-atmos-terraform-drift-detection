@@ -8,12 +8,8 @@ class Nothing {
         return new None();
     }
 
-    summary() {
-        return "";
-    }
-
-    shortSummary() {
-        return "";
+    isVisible() {
+        return false
     }
 }
 

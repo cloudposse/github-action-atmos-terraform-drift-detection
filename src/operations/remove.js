@@ -1,5 +1,4 @@
 const core = require("@actions/core");
-const github = require("@actions/github");
 const {Removed} = require("../results/removed");
 
 class Remove {
@@ -34,14 +33,11 @@ class Remove {
 
         core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
 
-        return new Removed(github.context.runId, repository, issueNumber, this.issue);
+        return new Removed(context, repository, issueNumber, this.issue);
     }
 
-    summary() {
-        return "";
-    }
-    shortSummary() {
-        return "";
+    isVisible() {
+        return true
     }
 }
 

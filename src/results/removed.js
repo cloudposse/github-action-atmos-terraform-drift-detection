@@ -1,6 +1,9 @@
-class Removed {
-    constructor(runId, repository, newIssueNumber, issue) {
-        this.runId = runId;
+const {Base} = require("./base");
+
+class Removed extends Base {
+    constructor(context, repository, newIssueNumber, issue) {
+        super();
+        this.runId = context.runId;
         this.repository = repository;
         this.newIssueNumber = newIssueNumber;
         this.issue = issue;
@@ -19,6 +22,12 @@ class Removed {
         return [component, state, comments].join(" | ");
     }
 
+    summary() {
+        return "";
+    }
+    shortSummary() {
+        return "";
+    }
 }
 
 

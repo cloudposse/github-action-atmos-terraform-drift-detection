@@ -1,15 +1,21 @@
-class None {
-    constructor(runId, repository, newIssue, state) {
-        this.runId = runId;
-        this.repository = repository;
-        this.newIssue = newIssue;
-        this.state = state;
+const {Base} = require("./base");
+
+class None extends Base {
+    constructor() {
+        super();
     }
 
     render() {
         return ""
     }
 
+    summary() {
+        return "";
+    }
+
+    shortSummary() {
+        return "";
+    }
 }
 
 
