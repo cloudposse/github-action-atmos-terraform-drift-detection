@@ -1,15 +1,19 @@
-name: Feature branch
+---
+name: feature-branch
 on:
   pull_request:
-    branches: [ main ]
-    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - release/**
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  pull-requests: write
+  id-token: write
+  contents: write
+  issues: write
 
 jobs:
-  perform:
-    uses: cloudposse/github-actions-workflows-github-action-composite/.github/workflows/feature-branch.yml@main
-    with:
-      organization: "${{ github.event.repository.owner.login }}"
-      repository: "${{ github.event.repository.name }}"
-      ref: "${{ github.event.pull_request.head.ref  }}"
-    secrets:
-      github-private-actions-pat: "${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}"
+  terraform-module:
+    uses: cloudposse/github-actions-workflows-terraform-module/.github/workflows/feature-branch.yml@main
+    secrets: inherit
