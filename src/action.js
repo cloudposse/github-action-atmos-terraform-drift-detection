@@ -225,7 +225,7 @@ const postComment = async (octokit, context, table) => {
     issue_number: context.payload.pull_request.number,
   }).then( result => {
     return result.data.filter(item => {
-      return item.body.includes("commentIdSuffix")
+      return item.body.includes(commentIdSuffix)
     }).map(item => { return item.id }).pop()
   })
 
