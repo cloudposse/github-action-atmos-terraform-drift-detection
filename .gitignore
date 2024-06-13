@@ -16,3 +16,4 @@ $RECYCLE.BIN/
 # Code coverage reports
 /coverage
 .build-harness
+build-harness
