@@ -218,18 +218,18 @@ const postSummaries = async (table, components) => {
 const postComment = async (octokit, context, table) => {
   const commentId = "github-action-atmos-terraform-drift-detection-comment"
   // Suffix comment with hidden value to check for updating later.
-  const commentIdSuffix = `\n\n\n<!-- purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}" -->`;
+  const commentIdSuffix = `<!-- purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}" -->`;
 
   const existingCommentId = await octokit.rest.issues.listComments({
     ...context.repo,
     issue_number: context.payload.pull_request.number,
   }).then( result => {
     return result.data.filter(item => {
-      return item.body !== ""
+      return item.body.includes("commentIdSuffix")
     }).map(item => { return item.id }).pop()
   })
 
-  const commentBody = table.join("\n") + commentIdSuffix;
+  const commentBody = table.join("\n") + `\n\n\n` + commentIdSuffix;
   // If comment already exists, get the comment ID.
   if (existingCommentId) {
     console.log("Update comment")
