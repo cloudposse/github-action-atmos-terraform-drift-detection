@@ -218,7 +218,7 @@ const postSummaries = async (table, components) => {
 const postComment = async (octokit, context, table) => {
   const commentId = "github-action-atmos-terraform-drift-detection-comment"
   // Suffix comment with hidden value to check for updating later.
-  const commentIdSuffix = `\n\n\n<hidden purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}"></hidden>`;
+  const commentIdSuffix = `\n\n\n<!-- purpose="github-action-atmos-terraform-drift-detection-comment" value="${commentId}" -->`;
 
   const existingCommentId = await octokit.rest.issues.listComments({
     ...context.repo,
