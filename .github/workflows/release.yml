@@ -1,9 +1,7 @@
----
-name: release
+name: Release
 on:
   release:
-    types:
-      - published
+    types: [published]
 
 permissions:
   id-token: write
@@ -11,6 +9,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  terraform-module:
+  github-action:
     uses: cloudposse/.github/.github/workflows/shared-release-branches.yml@main
     secrets: inherit
