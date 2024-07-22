@@ -14,7 +14,7 @@ const {readFileSync} = require("fs");
 
 
 const downloadArtifacts = (artifactName) => {
-  const artifactClient = artifact.create()
+  const artifactClient = new artifact()
   const downloadDirectory = '.'
 
   // Downloading the artifact
