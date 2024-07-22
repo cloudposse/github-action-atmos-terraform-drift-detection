@@ -13,6 +13,13 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const {Minimatch} = require('minimatch');
 
+export const chunk = <T>(arr: T[], n: number): T[][] =>
+  arr.reduce((acc, cur, i) => {
+    const index = Math.floor(i / n)
+    acc[index] = [...(acc[index] || []), cur]
+    return acc
+  }, [] as T[][])
+
 const downloadArtifacts = async (artifactName) => {
   try {
     const artifactClient = new DefaultArtifactClient();
