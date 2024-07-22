@@ -11,7 +11,7 @@ const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
-const { minimatch } = require('minimatch');
+const {Minimatch} = require('minimatch');
 
 const downloadArtifacts = async (artifactName) => {
   try {
