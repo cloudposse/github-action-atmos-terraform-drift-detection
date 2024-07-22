@@ -267,7 +267,7 @@ const runAction = async (octokit, context, parameters) => {
     processAll = false,
   } = parameters;
 
-  const stacksFromArtifact = await downloadArtifacts("metadata").then(
+  const stacksFromArtifact = await downloadArtifacts("metadata-*").then(
     (path) => {
       return mapArtifactToComponents(path)
     }
