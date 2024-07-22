@@ -17,3 +17,5 @@ $RECYCLE.BIN/
 /coverage
 .build-harness
 build-harness
+
+node_modules
