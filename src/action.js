@@ -13,42 +13,46 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const { minimatch } = require('minimatch');
 
-const downloadArtifacts = (artifactName) => {
-  const artifactClient = new DefaultArtifactClient()
+const downloadArtifacts = async (artifactName) => {
+  try {
+    const artifactClient = new DefaultArtifactClient();
 
-  // List all artifacts
-  const listArtifactResponse = await artifactClient.listArtifacts({
-    latest: true
-  })
+    // List all artifacts
+    const listArtifactResponse = await artifactClient.listArtifacts({
+      latest: true
+    });
 
-  // Filter artifacts by provided artifact name
-  const matcher = new Minimatch(artifactName)
-  const artifacts = listArtifactResponse.artifacts.filter(artifact =>
-    matcher.match(artifact.name)
-  )
-  if (artifacts.length === 0) {
-    throw new Error(`No artifacts found matching pattern '${artifactName}'`)
+    // Filter artifacts by provided artifact name
+    const matcher = new Minimatch(artifactName);
+    const artifacts = listArtifactResponse.artifacts.filter(artifact =>
+      matcher.match(artifact.name)
+    );
+
+    if (artifacts.length === 0) {
+      throw new Error(`No artifacts found matching pattern '${artifactName}'`);
+    }
+
+    // Downloading all matching artifacts
+    console.log("Attempting to download artifact(s)");
+    const downloadDirectory = '.';
+    const downloadPromises = artifacts.map(artifact =>
+      artifactClient.downloadArtifact(artifact.id, {
+        path: downloadDirectory
+      })
+    );
+
+    // Chunked downloads
+    const chunkedPromises = chunk(downloadPromises, PARALLEL_DOWNLOADS);
+    for (const chunk of chunkedPromises) {
+      await Promise.all(chunk);
+    }
+
+    console.info(`Artifacts matching ${artifactName} downloaded to ${downloadDirectory}`);
+    return downloadDirectory;
+  } catch (error) {
+    console.error(`Error downloading artifacts: ${error.message}`);
+    throw error;
   }
-
-  // Downloading all matching artifacts
-  console.log("Attempting to download artifact");
-  const downloadDirectory = '.'
-  const downloadPromises = artifacts.map(artifact =>
-    artifactClient.downloadArtifact(artifact.id, {
-      ...options,
-      path: downloadDirectory
-    })
-  )
-
-  // Wait for all downloads to complete
-  // Then return the download path
-  const chunkedPromises = chunk(downloadPromises, PARALLEL_DOWNLOADS)
-  for (const chunk of chunkedPromises) {
-    await Promise.all(chunk)
-  }.then((item) => {
-      core.info(`Artifacts matching ${artifactName} downloaded to ${downloadPath}`);
-      return item.downloadPath
-  })
 };
 
 const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
