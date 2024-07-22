@@ -13,13 +13,6 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const {Minimatch} = require('minimatch');
 
-const chunk = <T>(arr: T[], n: number): T[][] =>
-  arr.reduce((acc, cur, i) => {
-    const index = Math.floor(i / n)
-    acc[index] = [...(acc[index] || []), cur]
-    return acc
-  }, [] as T[][])
-
 const downloadArtifacts = async (artifactName) => {
   try {
     const artifactClient = new DefaultArtifactClient();
@@ -42,17 +35,11 @@ const downloadArtifacts = async (artifactName) => {
     // Downloading all matching artifacts
     console.log("Attempting to download artifact(s)");
     const downloadDirectory = '.';
-    const downloadPromises = artifacts.map(artifact =>
+    const downloadPromises = await artifacts.map(artifact =>
       artifactClient.downloadArtifact(artifact.id, {
         path: downloadDirectory
       })
     );
-
-    // Chunked downloads
-    const chunkedPromises = chunk(downloadPromises, PARALLEL_DOWNLOADS);
-    for (const chunk of chunkedPromises) {
-      await Promise.all(chunk);
-    }
 
     console.info(`Artifacts matching ${artifactName} downloaded to ${downloadDirectory}`);
     return downloadDirectory;
