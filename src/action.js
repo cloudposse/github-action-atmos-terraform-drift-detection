@@ -18,11 +18,14 @@ const downloadArtifacts = (artifactName) => {
   const downloadDirectory = '.'
 
   // Downloading the artifact
+  console.log("Attempting to download artifact");
+  console.log("Artifact name: " + artifactName);
+  console.log("Download directory: " + downloadDirectory);
   return artifactClient.downloadArtifact(artifactName, {
-      path: downloadDirectory 
+      path: downloadDirectory,
     })
     .then((item) => {
-      core.info(`Artifact ${artifactName} downloaded to ${item.downloadPath}`);
+      core.info(`Artifact ${artifactName} downloaded to ${downloadPath}`);
       return item.downloadPath
     })
 };
