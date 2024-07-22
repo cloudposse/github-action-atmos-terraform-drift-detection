@@ -18,7 +18,9 @@ const downloadArtifacts = (artifactName) => {
   const downloadDirectory = '.'
 
   // Downloading the artifact
-  return artifactClient.downloadArtifact(artifactName, downloadDirectory)
+  return artifactClient.downloadArtifact(artifactName, {
+      path: downloadDirectory 
+    })
     .then((item) => {
       core.info(`Artifact ${artifactName} downloaded to ${item.downloadPath}`);
       return item.downloadPath
