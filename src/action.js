@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
-//const artifact = require('@actions/artifact');
+const artifactClient = require('@actions/artifact');
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
 const {Update} = require("./operations/update");
@@ -11,8 +11,6 @@ const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
-
-import artifactClient from '@actions/artifact'
 
 const downloadArtifacts = (artifactName) => {
   //const artifactClient = new artifact()
