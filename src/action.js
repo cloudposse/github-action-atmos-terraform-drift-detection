@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
-const artifactClient = require('@actions/artifact');
+//const artifactClient = require('@actions/artifact');
+const {DefaultArtifactClient} = require('@actions/artifact')
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
 const {Update} = require("./operations/update");
@@ -14,13 +15,14 @@ const {readFileSync} = require("fs");
 
 const downloadArtifacts = (artifactName) => {
   //const artifactClient = new artifact()
+  const artifact = new DefaultArtifactClient()
   const downloadDirectory = '.'
 
   // Downloading the artifact
   console.log("Attempting to download artifact");
   console.log("Artifact name: " + artifactName);
   console.log("Download directory: " + downloadDirectory);
-  return artifactClient.downloadArtifact(artifactName, {
+  return artifact.downloadArtifact(artifactName, {
       path: downloadDirectory,
     })
     .then((item) => {
