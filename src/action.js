@@ -13,7 +13,7 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const {Minimatch} = require('minimatch');
 
-const downloadArtifacts = async (artifactName) => {
+const downloadArtifacts = async (artifactPattern) => {
   try {
     const artifactClient = new DefaultArtifactClient();
 
@@ -23,13 +23,13 @@ const downloadArtifacts = async (artifactName) => {
     });
 
     // Filter artifacts by provided artifact name
-    const matcher = new Minimatch(artifactName);
+    const matcher = new Minimatch(artifactPattern);
     const artifacts = listArtifactResponse.artifacts.filter(artifact =>
       matcher.match(artifact.name)
     );
 
     if (artifacts.length === 0) {
-      throw new Error(`No artifacts found matching pattern '${artifactName}'`);
+      throw new Error(`No artifacts found matching pattern '${artifactPattern}'`);
     }
 
     // Downloading all matching artifacts
@@ -41,7 +41,7 @@ const downloadArtifacts = async (artifactName) => {
       })
     );
 
-    console.info(`Artifacts matching ${artifactName} downloaded to ${downloadDirectory}`);
+    console.info(`Artifacts matching ${artifactPattern} downloaded to ${downloadDirectory}`);
     return downloadDirectory;
   } catch (error) {
     console.error(`Error downloading artifacts: ${error.message}`);
@@ -286,7 +286,7 @@ const runAction = async (octokit, context, parameters) => {
     processAll = false,
   } = parameters;
 
-  const stacksFromArtifact = await downloadArtifacts("metadata-*").then(
+  const stacksFromArtifact = await downloadArtifacts("metadata").then(
     (path) => {
       return mapArtifactToComponents(path)
     }
