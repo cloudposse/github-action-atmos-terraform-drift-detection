@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
-const artifact = require('@actions/artifact');
+const {DefaultArtifactClient} = require('@actions/artifact')
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
 const {Update} = require("./operations/update");
@@ -11,18 +11,55 @@ const {Create} = require("./operations/create");
 const {Nothing} = require("./operations/nothing");
 const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
+const {Minimatch} = require('minimatch');
 
+const chunk = (arr, n) =>
+  arr.reduce((acc, cur, i) => {
+    const index = Math.floor(i / n);
+    acc[index] = [...(acc[index] || []), cur];
+    return acc;
+  }, []);
 
-const downloadArtifacts = (artifactName) => {
-  const artifactClient = artifact.create()
-  const downloadDirectory = '.'
+const downloadArtifacts = async (artifactPattern) => {
+  try {
+    const artifactClient = new DefaultArtifactClient();
 
-  // Downloading the artifact
-  return artifactClient.downloadArtifact(artifactName, downloadDirectory)
-    .then((item) => {
-      core.info(`Artifact ${artifactName} downloaded to ${item.downloadPath}`);
-      return item.downloadPath
-    })
+    // List all artifacts
+    const listArtifactResponse = await artifactClient.listArtifacts({
+      latest: true
+    });
+
+    // Filter artifacts by provided artifact name
+    const matcher = new Minimatch(artifactPattern);
+    const artifacts = listArtifactResponse.artifacts.filter(artifact =>
+      matcher.match(artifact.name)
+    );
+
+    if (artifacts.length === 0) {
+      throw new Error(`No artifacts found matching pattern '${artifactPattern}'`);
+    }
+
+    // Downloading all matching artifacts
+    core.debug("Attempting to download artifact(s)");
+    const downloadDirectory = '.';
+    const resolvedPath = path.resolve(downloadDirectory);
+    const downloadPromises = artifacts.map(artifact =>
+      artifactClient.downloadArtifact(artifact.id, {
+        path: resolvedPath 
+      })
+    );
+
+    const chunkedPromises = chunk(downloadPromises, 5)
+    for (const chunk of chunkedPromises) {
+      await Promise.all(chunk)
+    }
+
+    console.info(`Artifacts matching ${artifactPattern} downloaded to ${resolvedPath}`);
+    return resolvedPath;
+  } catch (error) {
+    console.error(`Error downloading artifacts: ${error.message}`);
+    throw error;
+  }
 };
 
 const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
@@ -65,7 +102,9 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
 
 const mapArtifactToComponents = (path) => {
   const files = fs.readdirSync(path);
+  core.debug("Files in artifact path: ", files);
   const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
+  core.debug("Metadata files in artifact path: ", metadataFiles);
   const result = metadataFiles.map(
     (file) => {
       const metadata = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -92,13 +131,17 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
         const commitSHA = issue.metadata.commitSHA;
         const currentSHA = "${{ github.sha }}";
 
+        core.debug(`Skipping or updating issue: ${issue}, ${state}`);
         return currentSHA === commitSHA ? new Skip(issue, state) : new Update(issue, state, labels)
       }
+      core.debug(`Closing issue: ${issue}, ${state}`);
       return new Close(issue, state)
 
     } else if (issue) {
+      core.debug(`Removing issue: ${issue}`);
       return new Remove(issue)
     } else if (state && (state.error || state.drifted)) {
+      core.debug(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
     }
 
@@ -262,7 +305,7 @@ const runAction = async (octokit, context, parameters) => {
     processAll = false,
   } = parameters;
 
-  const stacksFromArtifact = await downloadArtifacts("metadata").then(
+  const stacksFromArtifact = await downloadArtifacts("metadata-*").then(
     (path) => {
       return mapArtifactToComponents(path)
     }

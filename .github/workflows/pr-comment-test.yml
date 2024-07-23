@@ -24,9 +24,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: metadata
+          name: metadata-${{ github.run_id }}-test-pr-comments
           path: ./tests/fixtures/metadata
           retention-days: 1
 
@@ -54,24 +54,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-      - uses: nick-fields/assert-action@v1
+      - uses: nick-fields/assert-action@v2
         with:
           expected: 'success'
           actual: "${{ needs.test.outputs.result }}"
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@v1
+        uses: actions-cool/issues-helper@v3
         with:
-          query: 'label:test-pr-comments is:open'
+          actions: 'find-issues'
           token: ${{ github.token }}
+          labels: 'test-pr-comments'
+          issue-state: 'open'
 
-      - name: Close found issues
+      - name: Count found issues
         id: test
         run: |
-          echo "count=$(cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' echo "{}" | wc -l )" >> $GITHUB_OUTPUT
+          issue_count=$(echo '${{ steps.issues.outputs.issues }}' | jq '. | length')
+          echo "Count of found issues: $issue_count"
+          echo "count=$issue_count" >> $GITHUB_OUTPUT
 
-      - uses: nick-fields/assert-action@v1
+      - uses: nick-fields/assert-action@v2
         with:
           expected: '4'
           actual: "${{ steps.test.outputs.count }}"
@@ -84,14 +88,9 @@ jobs:
       - name: Tear down
         run: echo "Do Tear down"
 
-      - name: Find all issues
-        id: issues
-        uses: lee-dohm/select-matching-issues@v1
+      - name: Close all matching issues
+        uses: actions-cool/issues-helper@v3
         with:
-          query: 'label:test-pr-comments is:open'
+          actions: 'close-issues'
           token: ${{ github.token }}
-
-      - name: Close found issues
-        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
-        env:
-          GH_TOKEN: ${{ github.token }}
+          labels: 'test-pr-comments'
