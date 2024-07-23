@@ -40,7 +40,7 @@ const downloadArtifacts = async (artifactPattern) => {
     }
 
     // Downloading all matching artifacts
-    console.log("Attempting to download artifact(s)");
+    core.debug("Attempting to download artifact(s)");
     const downloadDirectory = '.';
     const resolvedPath = path.resolve(downloadDirectory);
     const downloadPromises = artifacts.map(artifact =>
@@ -55,11 +55,6 @@ const downloadArtifacts = async (artifactPattern) => {
     }
 
     console.info(`Artifacts matching ${artifactPattern} downloaded to ${resolvedPath}`);
-    console.info(`Total of ${artifacts.length} artifact(s) downloaded`)
-
-    const files = fs.readdirSync(resolvedPath);
-    console.log("Debug - Files in artifact path: ", files);
-
     return resolvedPath;
   } catch (error) {
     console.error(`Error downloading artifacts: ${error.message}`);
@@ -107,9 +102,9 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
 
 const mapArtifactToComponents = (path) => {
   const files = fs.readdirSync(path);
-  console.log("Files in artifact path: ", files);
+  core.debug("Files in artifact path: ", files);
   const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
-  console.log("Metadata files in artifact path: ", metadataFiles);
+  core.debug("Metadata files in artifact path: ", metadataFiles);
   const result = metadataFiles.map(
     (file) => {
       const metadata = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -136,17 +131,17 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
         const commitSHA = issue.metadata.commitSHA;
         const currentSHA = "${{ github.sha }}";
 
-        console.log(`Skipping or updating issue: ${issue}, ${state}`);
+        core.debug(`Skipping or updating issue: ${issue}, ${state}`);
         return currentSHA === commitSHA ? new Skip(issue, state) : new Update(issue, state, labels)
       }
-      console.log(`Closing issue: ${issue}, ${state}`);
+      core.debug(`Closing issue: ${issue}, ${state}`);
       return new Close(issue, state)
 
     } else if (issue) {
-      console.log(`Removing issue: ${issue}`);
+      core.debug(`Removing issue: ${issue}`);
       return new Remove(issue)
     } else if (state && (state.error || state.drifted)) {
-      console.log(`Creating new issue: ${state}, ${labels}`);
+      core.debug(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
     }
 
@@ -315,8 +310,6 @@ const runAction = async (octokit, context, parameters) => {
       return mapArtifactToComponents(path)
     }
   )
-
-  console.log("Stacks from artifact: ", stacksFromArtifact);
 
   const stacksFromIssues = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
 
