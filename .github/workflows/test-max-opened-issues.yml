@@ -27,7 +27,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: metadata-${{ github.run_id }}-${{ github.job }}
+          name: metadata-${{ github.run_id }}-test-max-opened-issues
           path: ./tests/fixtures/metadata
           retention-days: 1
 
