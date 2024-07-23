@@ -61,15 +61,19 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: lee-dohm/select-matching-issues@v1
+        uses: actions-cool/issues-helper@v3
         with:
-          query: 'label:test-changes-exists is:open'
+          actions: 'find-issues'
           token: ${{ github.token }}
+          labels: 'test-changes-exists'
+          issue-state: 'open'
 
-      - name: Close found issues
+      - name: Count found issues
         id: test
         run: |
-          echo "count=$(cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' echo "{}" | wc -l )" >> $GITHUB_OUTPUT
+          issue_count=$(echo "${{ steps.issues.outputs.issues }}" | jq '. | length')
+          echo "Count of found issues: $issue_count"
+          echo "count=$issue_count" >> $GITHUB_OUTPUT
 
       - uses: nick-fields/assert-action@v1
         with:
@@ -84,14 +88,9 @@ jobs:
       - name: Tear down
         run: echo "Do Tear down"
 
-      - name: Find all issues
-        id: issues
-        uses: lee-dohm/select-matching-issues@v1
+      - name: Close all matching issues
+        uses: actions-cool/issues-helper@v3
         with:
-          query: 'label:test-changes-exists is:open'
+          actions: 'close-issues'
           token: ${{ github.token }}
-
-      - name: Close found issues
-        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
-        env:
-          GH_TOKEN: ${{ github.token }}
+          labels: 'test-changes-exists'

@@ -73,7 +73,7 @@ jobs:
         run: |
           issue_count=$(echo "${{ steps.issues.outputs.issues }}" | jq '. | length')
           echo "Count of found issues: $issue_count"
-          echo "count=$issue_count" >> $GITHUB_ENV
+          echo "count=$issue_count" >> $GITHUB_OUTPUT
 
       - uses: nick-fields/assert-action@v1
         with:
@@ -88,14 +88,9 @@ jobs:
       - name: Tear down
         run: echo "Do Tear down"
 
-      - name: Find all issues
-        id: issues
-        uses: lee-dohm/select-matching-issues@v1
+      - name: Close all matching issues
+        uses: actions-cool/issues-helper@v3
         with:
-          query: 'label:test-pr-comments is:open'
+          actions: 'close-issues'
           token: ${{ github.token }}
-
-      - name: Close found issues
-        run: cat ${{ steps.issues.outputs.path }} | xargs -I {} -d '\n' gh issue close {}
-        env:
-          GH_TOKEN: ${{ github.token }}
+          labels: 'test-pr-comments'
