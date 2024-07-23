@@ -71,7 +71,7 @@ jobs:
       - name: Count found issues
         id: test
         run: |
-          issue_count=$(echo "${{ steps.issues.outputs.issues }}" | jq '. | length')
+          issue_count=$(echo '${{ steps.issues.outputs.issues }}' | jq '. | length')
           echo "Count of found issues: $issue_count"
           echo "count=$issue_count" >> $GITHUB_OUTPUT
 
