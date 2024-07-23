@@ -35,18 +35,20 @@ const downloadArtifacts = async (artifactPattern) => {
     // Downloading all matching artifacts
     console.log("Attempting to download artifact(s)");
     const downloadDirectory = '.';
+    const resolvedPath = path.resolve(downloadDirectory);
     const downloadPromises = await artifacts.map(artifact =>
       artifactClient.downloadArtifact(artifact.id, {
-        path: downloadDirectory
+        path: resolvedPath 
       })
     );
 
-    console.info(`Artifacts matching ${artifactPattern} downloaded to ${downloadDirectory}`);
+    console.info(`Artifacts matching ${artifactPattern} downloaded to ${resolvedPath}`);
+    console.info(`Total of ${artifacts.length} artifact(s) downloaded`)
 
-    const files = fs.readdirSync(downloadDirectory);
+    const files = fs.readdirSync(resolvedPath);
     console.log("Debug - Files in artifact path: ", files);
 
-    return downloadDirectory;
+    return resolvedPath;
   } catch (error) {
     console.error(`Error downloading artifacts: ${error.message}`);
     throw error;
