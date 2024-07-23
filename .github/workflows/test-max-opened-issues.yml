@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-      - uses: nick-fields/assert-action@v1
+      - uses: nick-fields/assert-action@v2
         with:
           expected: 'success'
           actual: "${{ needs.test.outputs.result }}"
@@ -76,7 +76,7 @@ jobs:
           echo "Count of found issues: $issue_count"
           echo "count=$issue_count" >> $GITHUB_OUTPUT
 
-      - uses: nick-fields/assert-action@v1
+      - uses: nick-fields/assert-action@v2
         with:
           expected: '3'
           actual: "${{ steps.test.outputs.count }}"
