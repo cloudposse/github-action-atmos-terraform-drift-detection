@@ -49,7 +49,7 @@ const downloadArtifacts = async (artifactPattern) => {
       })
     );
 
-    const chunkedPromises = chunk(downloadPromises, PARALLEL_DOWNLOADS)
+    const chunkedPromises = chunk(downloadPromises, 5)
     for (const chunk of chunkedPromises) {
       await Promise.all(chunk)
     }
