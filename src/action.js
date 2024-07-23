@@ -89,7 +89,9 @@ const mapOpenGitHubIssuesToComponents = async (octokit, context, labels) => {
 
 const mapArtifactToComponents = (path) => {
   const files = fs.readdirSync(path);
+  console.log("Files in artifact path: ", files);
   const metadataFiles = files.filter(file => file.endsWith('metadata.json'));
+  console.log("Metadata files in artifact path: ", metadataFiles);
   const result = metadataFiles.map(
     (file) => {
       const metadata = JSON.parse(fs.readFileSync(file, 'utf8'));
