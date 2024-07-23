@@ -42,6 +42,10 @@ const downloadArtifacts = async (artifactPattern) => {
     );
 
     console.info(`Artifacts matching ${artifactPattern} downloaded to ${downloadDirectory}`);
+
+    const files = fs.readdirSync(downloadDirectory);
+    console.log("Debug - Files in artifact path: ", files);
+
     return downloadDirectory;
   } catch (error) {
     console.error(`Error downloading artifacts: ${error.message}`);
