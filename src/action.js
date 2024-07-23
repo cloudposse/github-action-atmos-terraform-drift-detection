@@ -13,7 +13,7 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const {Minimatch} = require('minimatch');
 
-export const chunk = (arr, n) =>
+const chunk = (arr, n) =>
   arr.reduce((acc, cur, i) => {
     const index = Math.floor(i / n);
     acc[index] = [...(acc[index] || []), cur];
