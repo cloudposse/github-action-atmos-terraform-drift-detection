@@ -296,6 +296,8 @@ const runAction = async (octokit, context, parameters) => {
     }
   )
 
+  console.log("Stacks from artifact: ", stacksFromArtifact);
+
   const stacksFromIssues = await mapOpenGitHubIssuesToComponents(octokit, context, labels);
 
   const usersFromTeams = await convertTeamsToUsers(octokit, context.repo.owner, assigneeTeams);
