@@ -13,6 +13,13 @@ const {StackFromArchive} = require("./models/stacks_from_archive");
 const {readFileSync} = require("fs");
 const {Minimatch} = require('minimatch');
 
+export const chunk = (arr, n) =>
+  arr.reduce((acc, cur, i) => {
+    const index = Math.floor(i / n);
+    acc[index] = [...(acc[index] || []), cur];
+    return acc;
+  }, []);
+
 const downloadArtifacts = async (artifactPattern) => {
   try {
     const artifactClient = new DefaultArtifactClient();
@@ -36,11 +43,16 @@ const downloadArtifacts = async (artifactPattern) => {
     console.log("Attempting to download artifact(s)");
     const downloadDirectory = '.';
     const resolvedPath = path.resolve(downloadDirectory);
-    const downloadPromises = await artifacts.map(artifact =>
+    const downloadPromises = artifacts.map(artifact =>
       artifactClient.downloadArtifact(artifact.id, {
         path: resolvedPath 
       })
     );
+
+    const chunkedPromises = chunk(downloadPromises, PARALLEL_DOWNLOADS)
+    for (const chunk of chunkedPromises) {
+      await Promise.all(chunk)
+    }
 
     console.info(`Artifacts matching ${artifactPattern} downloaded to ${resolvedPath}`);
     console.info(`Total of ${artifacts.length} artifact(s) downloaded`)
