@@ -116,13 +116,17 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
         const commitSHA = issue.metadata.commitSHA;
         const currentSHA = "${{ github.sha }}";
 
+        console.log(`Skipping or updating issue: ${issue}, ${state}`);
         return currentSHA === commitSHA ? new Skip(issue, state) : new Update(issue, state, labels)
       }
+      console.log(`Closing issue: ${issue}, ${state}`);
       return new Close(issue, state)
 
     } else if (issue) {
+      console.log(`Removing issue: ${issue}`);
       return new Remove(issue)
     } else if (state && (state.error || state.drifted)) {
+      console.log(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
     }
 
