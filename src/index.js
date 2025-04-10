@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
+const { retry } = require("@octokit/plugin-retry");
 const { runAction } = require('./action');
 const { parseIntInput, parseCsvInput } = require('./utils');
 
@@ -12,8 +13,15 @@ try {
     const labels        = parseCsvInput(core.getInput('labels'));
     const processAll    = core.getBooleanInput('process-all');
 
-    // Get octokit
-    const octokit = github.getOctokit(token);
+    // Get octokit with retry plugin
+    const octokit = github.getOctokit(token, {
+        retry: {
+            enabled: true,
+            retries: 3,
+            doNotRetry: ['429'],
+            retryAfter: 5
+        }
+    }, retry);
 
     // Run action
     runAction(octokit, github.context, {
