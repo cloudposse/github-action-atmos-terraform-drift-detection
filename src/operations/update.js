@@ -44,7 +44,7 @@ class Update {
                 labels: [label].concat(this.labels)
             });
 
-            core.info(`Updated issue: ${issueNumber}`);
+            core.info(`Updated issue ${issueNumber} for ${slug}`);
         } catch (error) {
             core.error(`Failed to update issue ${issueNumber}: ${error.message}`);
         }
