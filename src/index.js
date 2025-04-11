@@ -17,8 +17,15 @@ try {
     const octokit = github.getOctokit(token, {
         retry: {
             enabled: true,
+            // Override default retry behavior, because by default, 403 is not retried,
+            // but secondary rate limiting is a 403.
+            // 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found,
+            // 410 Gone, 422 Unprocessable Entity, 451 Unavailable For Legal Reasons
+            doNotRetry: [400, 401, 404, 410, 422, 451],
             retries: 4,
-            retryAfter: 3
+            // Retry after 25 seconds for secondary rate limiting.
+            // If the retry-after header is present, that value will be used instead.
+            retryAfter: 25
         }
     }, retry);
 
