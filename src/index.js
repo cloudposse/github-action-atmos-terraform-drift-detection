@@ -18,7 +18,6 @@ try {
         retry: {
             enabled: true,
             retries: 4,
-            doNotRetry: ['429'],
             retryAfter: 3
         }
     }, retry);
