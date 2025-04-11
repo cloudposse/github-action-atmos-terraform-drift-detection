@@ -34,15 +34,20 @@ class Update {
             body.push(`* #${context.payload.pull_request.number}`);
         }
 
-        octokit.rest.issues.update({
-            ...repository,
-            issue_number: issueNumber,
-            title: issueTitle,
-            body: body.join("\n"),
-            labels: [label].concat(this.labels)
-        });
+        try {
+            // Await the update call and log progress
+            await octokit.rest.issues.update({
+                ...repository,
+                issue_number: issueNumber,
+                title: issueTitle,
+                body: body.join("\n"),
+                labels: [label].concat(this.labels)
+            });
 
-        core.info(`Updated issue: ${issueNumber}`);
+            core.info(`Updated issue: ${issueNumber}`);
+        } catch (error) {
+            core.error(`Failed to update issue ${issueNumber}: ${error.message}`);
+        }
 
         return new Exists(context, repository, issueNumber, this.state)
     }
