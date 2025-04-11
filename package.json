@@ -40,8 +40,8 @@
     "homepage": "https://github.com/cloudposse/github-action-atmos-terraform-drift-detection#readme",
     "dependencies": {
         "@actions/artifact": "^2.3.2",
-        "@actions/core": "^1.10.0",
-        "@actions/github": "^5.1.1",
+        "@actions/core": "^1.11.1",
+        "@actions/github": "^6.0.0",
         "@octokit/plugin-retry": "^7.2.1",
         "minimatch": "^9.0.3"
     },

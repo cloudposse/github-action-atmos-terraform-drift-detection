@@ -17,9 +17,9 @@ try {
     const octokit = github.getOctokit(token, {
         retry: {
             enabled: true,
-            retries: 3,
+            retries: 4,
             doNotRetry: ['429'],
-            retryAfter: 5
+            retryAfter: 3
         }
     }, retry);
 
