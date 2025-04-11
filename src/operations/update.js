@@ -2,6 +2,7 @@ const core = require("@actions/core");
 const {readFileSync} = require("fs");
 const {Exists} = require("../results/exists");
 const {getFileName} = require("../utils");
+const {wrapWithRetry} = require("../utils/retry");
 
 class Update {
     constructor(issue, state, labels) {
@@ -36,17 +37,20 @@ class Update {
 
         try {
             // Await the update call and log progress
-            await octokit.rest.issues.update({
-                ...repository,
-                issue_number: issueNumber,
-                title: issueTitle,
-                body: body.join("\n"),
-                labels: [label].concat(this.labels)
+            await wrapWithRetry(() => {
+                octokit.rest.issues.update({
+                    ...repository,
+                    issue_number: issueNumber,
+                    title: issueTitle,
+                    body: body.join("\n"),
+                    labels: [label].concat(this.labels)
+                })
             });
 
             core.info(`Updated issue ${issueNumber} for ${slug}`);
         } catch (error) {
-            core.error(`Failed to update issue ${issueNumber}: ${error.message}`);
+            core.error(`Failed to update issue ${issueNumber}:\n\t${error.message}`);
+            throw error;
         }
 
         return new Exists(context, repository, issueNumber, this.state)
