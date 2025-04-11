@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
-const pThrottle = require('p-throttle');
 const {DefaultArtifactClient} = require('@actions/artifact')
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
@@ -338,6 +337,7 @@ const runAction = async (octokit, context, parameters) => {
   // No telling how long it takes to reset, though, but we have request retries in place just in case.
   // 20 requests per 6s = 200 requests per minute, which seems reasonable,
   // lets us get 20 request all at once with no waiting.
+  const pThrottle = (await import('p-throttle')).default;
   const throttle = pThrottle({
     limit: 20, // 20 calls
     interval: 6000, // per 6000ms (6 seconds)
