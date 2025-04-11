@@ -144,6 +144,8 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
       core.debug(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
     } else if (processAll) {
+      core.info(`Nothing to do for ${slug}`);
+    } else {
       core.debug(`Nothing to do for ${slug}`);
     }
 
