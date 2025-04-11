@@ -43,7 +43,8 @@
         "@actions/core": "^1.11.1",
         "@actions/github": "^6.0.0",
         "@octokit/plugin-retry": "^7.2.1",
-        "minimatch": "^9.0.3"
+        "minimatch": "^9.0.3",
+        "p-throttle": "^7.0.0"
     },
     "devDependencies": {
         "@vercel/ncc": "^0.38.3",

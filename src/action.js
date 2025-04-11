@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
+const pThrottle = require('p-throttle');
 const {DefaultArtifactClient} = require('@actions/artifact')
 const {StackFromIssue, getMetadataFromIssueBody} = require("./models/stacks_from_issues");
 const {Skip} = require("./operations/skip");
@@ -332,7 +333,20 @@ const runAction = async (octokit, context, parameters) => {
     await postComment(octokit, context, title)
   }
 
-  const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
+  // Throttle the operations to avoid hitting GitHub API secondary rate limits.
+  // Unfortunately, those limits are unpublished, but we have gotten away with 50/second.
+  // No telling how long it takes to reset, though, but we have request retries in place just in case.
+  // 20 requests per 6s = 200 requests per minute, which seems reasonable,
+  // lets us get 20 request all at once with no waiting.
+  const throttle = pThrottle({
+    limit: 20, // 20 calls
+    interval: 6000, // per 6000ms (6 seconds)
+    strict: true // use a sliding window, not a bucketing window
+  });
+
+  const throttledRun = throttle((item) => item.run(octokit, context));
+
+  const results = await Promise.all(operations.map(throttledRun));
 
   const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync(`${assets_path}/summary-no-changes.md`, 'utf-8')]
   await postSummaries(summaryTable, results);
