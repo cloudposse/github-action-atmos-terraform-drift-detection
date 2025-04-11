@@ -143,6 +143,8 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
     } else if (state && (state.error || state.drifted)) {
       core.debug(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
+    } else if (processAll) {
+      core.debug(`Nothing to do for ${slug}`);
     }
 
     return new Nothing()
