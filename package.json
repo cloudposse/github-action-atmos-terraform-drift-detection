@@ -43,7 +43,7 @@
         "@actions/core": "^1.11.1",
         "@actions/github": "^6.0.0",
         "@octokit/plugin-retry": "^7.2.1",
-        "minimatch": "^9.0.3",
+        "minimatch": "^10.0.1",
         "p-throttle": "^7.0.0"
     },
     "devDependencies": {
@@ -59,7 +59,7 @@
         "node": ">=16"
     },
     "volta": {
-        "node": "20.14.0",
+        "node": "20.19.0",
         "npm": "8.11.0"
     }
 }
