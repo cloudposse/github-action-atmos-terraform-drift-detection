@@ -335,13 +335,13 @@ const runAction = async (octokit, context, parameters) => {
   // Throttle the operations to avoid hitting GitHub API secondary rate limits.
   // Unfortunately, those limits are unpublished, but we have gotten away with 50/second.
   // No telling how long it takes to reset, though, but we have request retries in place just in case.
-  // 20 requests per 6s = 200 requests per minute, which seems reasonable,
-  // lets us get 20 request all at once with no waiting.
+  // 20 requests per 6s = 200 requests per minute, proved to be too much.
+  // Try 10/6 s which gets us 10 requests all at once with no waiting.
   const pThrottle = (await import('p-throttle')).default;
   const throttle = pThrottle({
-    limit: 20, // 20 calls
+    limit: 10, // 10 calls
     interval: 6000, // per 6000ms (6 seconds)
-    strict: true // use a sliding window, not a bucketing window
+    strict: true // use a sliding window, not a bucket window
   });
 
   const throttledRun = throttle((item) => item.run(octokit, context));
