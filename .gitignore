@@ -17,3 +17,6 @@ $RECYCLE.BIN/
 /coverage
 .build-harness
 build-harness
+
+# Local development files
+/node_modules/

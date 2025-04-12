@@ -143,6 +143,10 @@ const getOperationsList = (stacksFromIssues, stacksFromArtifact, users, labels, 
     } else if (state && (state.error || state.drifted)) {
       core.debug(`Creating new issue: ${state}, ${labels}`);
       return new Create(state, users, labels)
+    } else if (processAll) {
+      core.info(`Nothing to do for ${slug}`);
+    } else {
+      core.debug(`Nothing to do for ${slug}`);
     }
 
     return new Nothing()
@@ -328,7 +332,21 @@ const runAction = async (octokit, context, parameters) => {
     await postComment(octokit, context, title)
   }
 
-  const results = await Promise.all(operations.map(item => { return item.run(octokit, context) }))
+  // Throttle the operations to avoid hitting GitHub API secondary rate limits.
+  // Unfortunately, those limits are unpublished, but we have gotten away with 50/second.
+  // No telling how long it takes to reset, though, but we have request retries in place just in case.
+  // 20 requests per 6s = 200 requests per minute, proved to be too much.
+  // Try 10/6 s which gets us 10 requests all at once with no waiting.
+  const pThrottle = (await import('p-throttle')).default;
+  const throttle = pThrottle({
+    limit: 10, // 10 calls
+    interval: 6000, // per 6000ms (6 seconds)
+    strict: true // use a sliding window, not a bucket window
+  });
+
+  const throttledRun = throttle((item) => item.run(octokit, context));
+
+  const results = await Promise.all(operations.map(throttledRun));
 
   const summaryTable =  operations.length > 0 ? driftDetectionTable(results) : [readFileSync(`${assets_path}/summary-no-changes.md`, 'utf-8')]
   await postSummaries(summaryTable, results);

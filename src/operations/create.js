@@ -2,6 +2,7 @@ const core = require("@actions/core");
 const {NewCreated} = require("../results/new-created");
 const {readFileSync} = require("fs");
 const {getFileName} = require("../utils");
+const {wrapWithRetry} = require("../utils/retry");
 
 class Create {
     constructor(state, users, labels) {
@@ -33,25 +34,35 @@ class Create {
         }
 
         const label = this.state.error ? "error" : "drift"
+        let issueNumber;
 
-        const newIssue = await octokit.rest.issues.create({
-            ...repository,
-            title: issueTitle,
-            body: body.join("\n"),
-            labels: [label].concat(this.labels)
-        });
+        try {
+            const newIssue = await wrapWithRetry(() =>
+                octokit.rest.issues.create({
+                    ...repository,
+                    title: issueTitle,
+                    body: body.join("\n"),
+                    labels: [label].concat(this.labels)
+                })
+            );
 
-        const issueNumber = newIssue.data.number;
+            issueNumber = newIssue.data.number;
 
-        core.info(`Created new issue with number: ${issueNumber}`);
+            core.info(`Created new issue with number ${issueNumber} for ${slug}`);
+        } catch (error) {
+            core.error(`Failed to create issue for ${slug}:\n\t${error.message}`);
+            throw error;
+        }
 
         if (this.users.length > 0) {
             try {
-                await octokit.rest.issues.addAssignees({
-                    ...repository,
-                    issue_number: issueNumber,
-                    assignees: this.users
-                });
+                await wrapWithRetry(() =>
+                    octokit.rest.issues.addAssignees({
+                        ...repository,
+                        issue_number: issueNumber,
+                        assignees: this.users
+                    })
+                );
             } catch (error) {
                 core.error(`Failed to associate user to an issue. Error ${error.message}`);
             }

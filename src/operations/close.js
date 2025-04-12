@@ -1,5 +1,9 @@
 const core = require("@actions/core");
 const {Recovered} = require("../results/recovered");
+const { wrapWithRetry } = require("../utils/retry");
+
+// Helper function for pausing execution
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 class Close {
     constructor(issue, state) {
@@ -13,28 +17,50 @@ class Close {
         const slug = this.issue.slug;
         const issueNumber = this.issue.number;
 
-        octokit.rest.issues.update({
-            ...repository,
-            issue_number: issueNumber,
-            state: "closed"
-        });
+        let step = "close";
+        try {
+            await wrapWithRetry(() =>
+                octokit.rest.issues.update({
+                    ...repository,
+                    issue_number: issueNumber,
+                    state: "closed"
+                })
+            );
 
-        const label = this.issue.error ? 'error-recovered' : 'drift-recovered';
+            // GitHub support advises:
+            // Pause Between Mutative Requests:
+            //   For POST, PATCH, PUT, or DELETE requests (like modifying issues or labels),
+            //   wait at least 1 second between each  request.
+            await sleep(1350);
 
-        octokit.rest.issues.addLabels({
-            ...repository,
-            issue_number: issueNumber,
-            labels: [label]
-        });
+            const label = this.issue.error ? 'error-recovered' : 'drift-recovered';
+            step = "label";
 
-        let comment = this.issue.error ? `Failure \`${slug}\` solved` : `Component \`${slug}\` is not drifting anymore`;
-        octokit.rest.issues.createComment({
-            ...repository,
-            issue_number: issueNumber,
-            body: comment,
-        });
+            await wrapWithRetry(() =>
+                octokit.rest.issues.addLabels({
+                    ...repository,
+                    issue_number: issueNumber,
+                    labels: [label]
+                })
+            );
 
-        core.info(`Issue ${issueNumber} for component ${slug} has been closed with comment: ${comment}`);
+            await sleep(1350);
+
+            step = "comment on";
+            let comment = this.issue.error ? `Failure \`${slug}\` solved` : `Component \`${slug}\` is not drifting anymore`;
+            await wrapWithRetry(() =>
+                octokit.rest.issues.createComment({
+                    ...repository,
+                    issue_number: issueNumber,
+                    body: comment,
+                })
+            );
+
+            core.info(`Issue ${issueNumber} for has been closed with comment: ${comment}`);
+        } catch (error) {
+            core.error(`Failed to ${step} issue ${issueNumber}:\n\t${error.message}`);
+            throw error;
+        }
 
         return new Recovered(context, repository, issueNumber, this.state)
     }

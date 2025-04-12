@@ -8,3 +8,11 @@ export README_DEPS ?= docs/github-action.md
 ## Lint terraform code
 lint:
 	$(SELF) terraform/install terraform/get-modules terraform/get-plugins terraform/lint terraform/validate
+
+## Build the project using vercel/ncc
+build:
+	@echo "Building the project..."
+	@PATH="$(PATH):./node_modules/.bin" ncc build src/index.js -o dist
+	@echo "Commit changes to dist/"
+	@git add dist/ || true
+	@git diff --cached --quiet dist/ || git commit -m "Update dist/ after build" || true
