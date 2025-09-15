@@ -1,8 +1,16 @@
 name: "Test - Changes exist - Drift"
 
 on:
-  workflow_dispatch: {}
-
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The fully-formed ref of the branch or tag that triggered the workflow run"
+        required: false
+        type: "string"
+      sha:
+        description: "The sha of the commit that triggered the workflow run"
+        required: false
+        type: "string"
 env:
   AWS_REGION: us-east-2
 
