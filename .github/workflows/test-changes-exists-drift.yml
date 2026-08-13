@@ -69,12 +69,17 @@ jobs:
 
       - name: Find all issues
         id: issues
-        uses: actions-cool/issues-helper@v3
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          actions: 'find-issues'
-          token: ${{ github.token }}
-          labels: 'test-changes-exists'
-          issue-state: 'open'
+          script: |
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'test-changes-exists',
+              state: 'open',
+              per_page: 100,
+            });
+            core.setOutput('issues', JSON.stringify(issues.filter(i => !i.pull_request)));
 
       - name: Count found issues
         id: test
@@ -97,8 +102,21 @@ jobs:
         run: echo "Do Tear down"
 
       - name: Close all matching issues
-        uses: actions-cool/issues-helper@v3
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          actions: 'close-issues'
-          token: ${{ github.token }}
-          labels: 'test-changes-exists'
+          script: |
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'test-changes-exists',
+              state: 'open',
+              per_page: 100,
+            });
+            for (const issue of issues.filter(i => !i.pull_request)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+              });
+            }
