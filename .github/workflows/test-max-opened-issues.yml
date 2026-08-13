@@ -54,7 +54,7 @@ jobs:
         with:
           max-opened-issues: '3'
           labels: "test-max-opened-issues"
-          token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       result: ${{ steps.current.outcome }}
