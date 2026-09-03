@@ -33,7 +33,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: metadata-${{ github.run_id }}-test-max-opened-issues
           path: ./tests/fixtures/metadata
