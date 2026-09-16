@@ -31,10 +31,11 @@ related: []
 
 description: This Github Action is used to detect drift
 
-introduction: |-
+deprecation_notice: |-
   > [!WARNING]
   > **Deprecated.** Migrate to [Atmos Native CI](https://atmos.tools/deprecated/github-actions/atmos-terraform-drift-detection).
 
+introduction: |-
   This action is deprecated in favor of Atmos Native CI. See the migration guide at
   https://atmos.tools/deprecated/github-actions/atmos-terraform-drift-detection for the equivalent
   built-in approach (a scheduled workflow running `atmos terraform plan`) and how to move your workflow over.
