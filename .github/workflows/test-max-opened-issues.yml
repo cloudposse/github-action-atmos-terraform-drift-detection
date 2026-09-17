@@ -54,7 +54,7 @@ jobs:
         with:
           max-opened-issues: '3'
           labels: "test-max-opened-issues"
-          token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
+          token: ${{ github.token }}
 
     outputs:
       result: ${{ steps.current.outcome }}
@@ -68,21 +68,20 @@ jobs:
           expected: 'success'
           actual: "${{ needs.test.outputs.result }}"
 
-      - name: Find all issues
-        id: issues
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'find-issues'
-          token: ${{ github.token }}
-          labels: 'test-max-opened-issues'
-          issue-state: 'open'
-
-      - name: Count found issues
+      - name: Count matching issues
         id: test
-        run: |
-          issue_count=$(echo '${{ steps.issues.outputs.issues }}' | jq '. | length')
-          echo "Count of found issues: $issue_count"
-          echo "count=$issue_count" >> $GITHUB_OUTPUT
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo,
+              labels: "test-max-opened-issues",
+              state: "open",
+              per_page: 100,
+            });
+            const count = issues.filter(issue => !issue.pull_request).length;
+            core.info(`Count of found issues: ${count}`);
+            core.setOutput("count", count);
 
       - uses: nick-fields/assert-action@v2
         with:
@@ -98,8 +97,19 @@ jobs:
         run: echo "Do Tear down"
 
       - name: Close all matching issues
-        uses: actions-cool/issues-helper@v3
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
-          actions: 'close-issues'
-          token: ${{ github.token }}
-          labels: 'test-max-opened-issues'
+          script: |
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo,
+              labels: "test-max-opened-issues",
+              state: "open",
+              per_page: 100,
+            });
+            for (const issue of issues.filter(issue => !issue.pull_request)) {
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: issue.number,
+                state: "closed",
+              });
+            }
