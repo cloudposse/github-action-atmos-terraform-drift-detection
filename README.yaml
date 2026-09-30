@@ -32,6 +32,13 @@ related: []
 description: This Github Action is used to detect drift
 
 introduction: |-
+  > [!WARNING]
+  > **Deprecated.** Migrate to [Atmos Native CI](https://atmos.tools/ci).
+
+  This action is deprecated in favor of Atmos Native CI. See the migration guide at
+  https://atmos.tools/deprecated/github-actions/atmos-terraform-drift-detection for the equivalent
+  built-in approach (a scheduled workflow running `atmos terraform plan`) and how to move your workflow over.
+
   This Github Action is used to detect drift.
 
   It will create or update github issue once drift is detect.

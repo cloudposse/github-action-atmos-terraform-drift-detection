@@ -1,15 +1,41 @@
 name: Validate Codeowners
 on:
   workflow_dispatch:
-
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  ci-codeowners:
-    uses: cloudposse/.github/.github/workflows/shared-codeowners.yml@main
-    with:
-      is_fork: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
-    secrets: inherit
+  validate-codeowners:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code at current commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check CODEOWNERS syntax and duplicate patterns
+        uses: mszostok/codeowners-validator@v0.7.1
+        with:
+          checks: "syntax,duppatterns"
+          owner_checker_allow_unowned_patterns: "false"
+
+      - name: Check owners with GitHub's CODEOWNERS validation
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            // GitHub resolves team membership and repository access server-side,
+            // so validation only needs the workflow's read-only repository token.
+            const { data } = await github.rest.repos.codeownersErrors({
+              ...context.repo,
+              ref: context.sha,
+            });
+            for (const error of data.errors) {
+              core.error(error.message, {
+                file: error.path,
+                startLine: error.line,
+                startColumn: error.column,
+              });
+            }
+            if (data.errors.length > 0) {
+              core.setFailed(`Found ${data.errors.length} CODEOWNERS errors`);
+            }

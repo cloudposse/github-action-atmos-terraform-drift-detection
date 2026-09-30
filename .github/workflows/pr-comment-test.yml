@@ -46,7 +46,7 @@ jobs:
         with:
           max-opened-issues: '4'
           labels: "test-pr-comments"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
 
     outputs:
       result: ${{ steps.current.outcome }}
@@ -60,26 +60,20 @@ jobs:
           expected: 'success'
           actual: "${{ needs.test.outputs.result }}"
 
-      - name: Find all issues
-        id: issues
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      - name: Count matching issues
+        id: test
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const issues = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: 'test-pr-comments',
-              state: 'open',
+              ...context.repo,
+              labels: "test-pr-comments",
+              state: "open",
               per_page: 100,
             });
-            core.setOutput('issues', JSON.stringify(issues.filter(i => !i.pull_request)));
-
-      - name: Count found issues
-        id: test
-        run: |
-          issue_count=$(echo '${{ steps.issues.outputs.issues }}' | jq '. | length')
-          echo "Count of found issues: $issue_count"
-          echo "count=$issue_count" >> $GITHUB_OUTPUT
+            const count = issues.filter(issue => !issue.pull_request).length;
+            core.info(`Count of found issues: ${count}`);
+            core.setOutput("count", count);
 
       - uses: nick-fields/assert-action@0efd6166067d9c59d89c710fab4f79fb066f8985 # v4.0.1
         with:
@@ -95,21 +89,19 @@ jobs:
         run: echo "Do Tear down"
 
       - name: Close all matching issues
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const issues = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: 'test-pr-comments',
-              state: 'open',
+              ...context.repo,
+              labels: "test-pr-comments",
+              state: "open",
               per_page: 100,
             });
-            for (const issue of issues.filter(i => !i.pull_request)) {
+            for (const issue of issues.filter(issue => !issue.pull_request)) {
               await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                ...context.repo,
                 issue_number: issue.number,
-                state: 'closed',
+                state: "closed",
               });
             }
